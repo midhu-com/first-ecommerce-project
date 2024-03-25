@@ -1,0 +1,42 @@
+{% extends 'customadmin/base.html'%}
+{% block title %}Category{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col">
+            <h2>Category</h2>
+            <br>
+            <a href="{% url 'add_category'%}"><button> Add category</button></a>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th scope="col">Name</th>
+                        <th scope="col">Image</th>
+                        <th scope="col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for category in category_list %}
+                    <tr>
+                        <td>{{ category.category_name }}</td>
+                        <td>{{ category.cat_image }}</td>
+                        <td>
+                                <!-- Add edit and delete actions -->
+                                <form action="{% url 'edit_category' category.id %}" method="post" style="display: inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-danger">Edit</button>
+                                </form>
+                                <form action="{% url 'delete_category' category.id %}" method="post" style="display: inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-success">Delete</button>
+                                </form>
+                            </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

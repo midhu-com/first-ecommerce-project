@@ -1,0 +1,21 @@
+{% extends 'customadmin/base.html' %}
+
+{% block title %}Add product{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col">
+            <h2>Add product</h2>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                {{ form.as_p }}
+                {{ form_image.images}}
+   
+                
+             <button type="submit" class="btn btn-primary" >Save</button></a>
+            </form>
+        </div>
+    </div>
+</div>  
+{% endblock %}

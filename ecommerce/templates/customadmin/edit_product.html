@@ -1,0 +1,18 @@
+{% extends 'customadmin/base.html' %}
+{% block title %}Edit Product{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col">
+            <h2>Edit Product</h2>
+            <form method="post" >
+                {% csrf_token %}
+                {{ form.as_p }}
+                <!-- Render the form fields using Django form representation -->
+                <button type="submit" class="btn btn-primary">Update</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

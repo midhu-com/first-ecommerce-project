@@ -1,0 +1,50 @@
+{% extends 'customadmin/base.html'%}
+
+{% block content %}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col">
+            <h2>Registered Users</h2>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th scope="col">Email</th>
+                        <th scope="col">First Name</th>
+                        <th scope="col">Last Name</th>
+                        <th scope="col">Username</th>
+                        <th scope="col">Last Login</th>
+                        <th scope="col">Date Joined</th>
+                        <th scope="col">is_active</th>
+                        <th scope="col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in registered_users %}
+                    <tr>
+                        <td>{{ user.email }}</td>
+                        <td>{{ user.first_name }}</td>
+                        <td>{{ user.last_name }}</td>
+                        <td>{{ user.username }}</td>
+                        <td>{{ user.last_login }}</td>
+                        <td>{{ user.date_joined }}</td>
+                        <td>{{ user.is_active }}</td>
+                        <td>
+                            <form action="{% url 'block_user' user.id %}" method="post" style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger">Block</button>
+                            </form>
+                            <form action="{% url 'unblock_user' user.id %}" method="post" style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-success">Unblock</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

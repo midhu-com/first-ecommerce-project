@@ -1,0 +1,23 @@
+{% extends 'customadmin/base.html' %}
+{% block title %}Edit Product{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col">
+            <h2>Edit category</h2>
+            <form method="post">
+                {% csrf_token %}
+                {{ form.as_p }}
+                
+                <button type="submit" class="btn btn-primary">Update category</button>
+            </form>
+            <hr>
+            <h3>Category Details</h3>
+            <p><strong>Name:</strong> {{category.category_name }}</p>
+            <p><strong>Description:</strong> {{category.cat_image }}</p>
+            
+        </div>
+    </div>
+</div>
+{% endblock %}
