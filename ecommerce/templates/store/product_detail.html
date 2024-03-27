@@ -10,7 +10,7 @@
                 <div class="row">
                     <div class="col-lg-12">
                         <div class="breadcrumb__links">
-                            <a href="{% url 'home' %}"><i class="fa fa-home"></i> Home|</a>
+                            <a href="{% url 'index' %}"><i class="fa fa-home"></i> Home|</a>
                             <a href="{% url 'store' %}">All Products|</a></li>
                             <!-- <a href="#"></a> -->
                             <span>{{ single_product.product_name }}</span>
@@ -95,12 +95,13 @@
                         </div> <!-- row.// -->  
                         <hr>
                         {% if single_product.stock <= 0 %}
-                        <h5 class="text-danger">Out Of Stock </h5>
+                            <h5 class="text-danger">Out Of Stock </h5>
                         {% else %}
-                        <h5>Available stock: {{single_product.stock}}</h5>
+                            <h5>Available stock: {{single_product.stock}}</h5>
                         <hr>
-                          <a href="./product-detail.html" class="btn  btn-primary"> <span class="text">Add to cart</span> <i class="fas fa-shopping-cart"></i>  </a>
+                        <a href="{% url 'add_cart' single_product.id %}" class="btn  btn-primary"> <span class="text">Add to cart</span> <i class="fas fa-shopping-cart"></i>  </a>
                         {% endif %}
+                        
                         <hr>
                         <div class="coupon_applied" id="coupon">
                             <h5>Coupon: Save $10</h5>

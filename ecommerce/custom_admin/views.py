@@ -123,7 +123,7 @@ def delete_product(request,product_id):
 def edit_product(request, product_id):
     
     product = get_object_or_404(Product, id=product_id)
-    print("product id is:",product_id)
+    print("product id is:",product)
     if request.method == 'POST':
         form = ProductForm(request.POST, instance=product)
         if form.is_valid():

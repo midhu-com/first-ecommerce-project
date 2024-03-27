@@ -2,7 +2,8 @@ from django.shortcuts import render,get_object_or_404
 from django.http import HttpResponse,Http404
 from.models import Product
 from category.models import Category
-
+from carts.views import _cart_id
+from carts.models import Cartitem
 
 # Create your views here.
 def store(request,category_slug=None):
@@ -29,10 +30,14 @@ def product_detail(request,category_slug,product_slug):
     try:
         single_product=Product.objects.get(category__slug=category_slug,slug=product_slug)
         product_images = single_product.product_images.all()  # Assuming you have a related name 'images' for the image field
+       # in_cart=Cartitem.objects.filter(cart__cart_id=_cart_id(request),product=single_product).exists()
+        
+        
     except Product.DoesNotExist:
         raise Http404("Product does not exist")
     context = {
         'single_product': single_product,
-        'product_images': product_images 
+        'product_images': product_images, 
+        #'in_cart':in_cart,
     }
     return render (request,'store/product_detail.html',context)

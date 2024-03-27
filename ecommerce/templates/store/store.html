@@ -9,7 +9,7 @@
         <div class="row">
             <div class="col-lg-12">
                 <div class="breadcrumb__links">
-                    <a href="{% url 'home' %}"><i class="fa fa-home"></i> Home</a>
+                    <a href="{% url 'index' %}"><i class="fa fa-home"></i> Home</a>
                    
                 </div>
             </div>
@@ -148,12 +148,17 @@
                         <img src="{{ product.product_images.first.image.url }}" alt="{{ product.product_name }}">
                     {% endif %}
                 </a>
+
                 <figcaption class="info-wrap">
                     <a href="{{ product.get_url }}" class="title">{{ product.product_name }}</a>
-                    <div class="price mt-1">${{ product.price }}</div>
+                    <div class="price mt-1">${{ product.price }}
+                    </div>
+                 <a href="{% url 'add_cart' product.id %}" class="btn btn-primary btn-block">Add to Cart</a>
                 </figcaption>
             </div>
+
         </div> <!-- col.// -->
+
         {% endfor %}
     </div>
         

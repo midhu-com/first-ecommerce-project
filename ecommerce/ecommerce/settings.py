@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'accounts',
     'store',
     'custom_admin',
+    'carts',
 ]
 SOCIALACCOUNT_PROVIDERS = {
 	    'google': {
