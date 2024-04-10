@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'store',
     'custom_admin',
     'carts',
+    'orders',
 ]
 SOCIALACCOUNT_PROVIDERS = {
 	    'google': {
@@ -86,6 +87,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'category.context_processors.menu_links',
+                'carts.context_processors.counter',
             ],  
         },
     },
@@ -157,6 +159,7 @@ from django.contrib.messages import constants as messages
 
 MESSAGE_TAGS = {
     messages.ERROR:'danger',
+    50:'critical',  
    
 }
 """smtp configuration"""

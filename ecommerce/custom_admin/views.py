@@ -5,8 +5,13 @@ from accounts.models import Account
 from category.models import Category
 from store.models import Product
 from store.models import Image
-from .forms import ProductForm,ProductImageForm
+from .forms import ProductForm,ProductImageForm,CategoryForm
 from django.shortcuts import get_object_or_404
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)  # Set the logging level as per your requirement
+logger = logging.getLogger(__name__)
 
 
 
@@ -121,17 +126,24 @@ def delete_product(request,product_id):
     
 
 def edit_product(request, product_id):
-    
     product = get_object_or_404(Product, id=product_id)
-    print("product id is:",product)
+    
     if request.method == 'POST':
         form = ProductForm(request.POST, instance=product)
         if form.is_valid():
             form.save()
-            return redirect('products')  # Redirect after successful form submission
+            messages.success(request, 'Product edited successfully')
+            return redirect('admin_view')  # Redirect after successful form submission
+        else:
+            # Log the form errors
+            print(form.errors)
+            logger.error(form.errors)  # You need to define the logger variable
+            messages.error(request, "Form contains errors. Please correct them.")
     else:
         form = ProductForm(instance=product)  # Pass the product instance to pre-fill the form
+    
     return render(request, 'customadmin/edit_product.html', {'form': form, 'product': product})
+
 
 #edit  & delete category details
 
@@ -146,17 +158,18 @@ def delete_category(request,category_id):
         return redirect('categories')
 
 def edit_category(request, category_id):
-    category = get_object_or_404(Category, pk=category_id)
+    category = get_object_or_404(Category, id=category_id)
 
     if request.method == 'POST':
         form = CategoryForm(request.POST, instance=category)
         if form.is_valid():
             form.save()
-            return redirect('categories')  # Redirect to the product list page after successful update
+            messages.success(request, 'Category updated successfully')
+            return redirect('categories')  # Redirect to the category list page after successful update
     else:
-        form = ProductForm(instance=category)
+        form = CategoryForm(instance=category)
 
-    return render(request, 'customadmin/edit_category.html', {'form': form, 'product':category})
+    return render(request, 'customadmin/edit_category.html', {'form': form, 'category': category})
 
 
 

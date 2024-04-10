@@ -31,6 +31,7 @@ class CategoryForm(forms.ModelForm):
 class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
+        exclude = ['created_date', 'modified_date']  # Exclude these fields from the form
         fields = ['product_name','slug','description', 'price','stock','is_available','category']
         widgets={
             'product_name':forms.TextInput(attrs={'class':'form-control'}),
@@ -41,8 +42,8 @@ class ProductForm(forms.ModelForm):
             'is_available':forms.CheckboxInput(attrs={'class':'form-check-input'}),
             'category':forms.Select(attrs={'class':'form-select'}),
             
-           
-        }
+            
+            }
 
 class ProductImageForm(forms.ModelForm)   :
     images=forms.FileField(widget=forms.TextInput(attrs={

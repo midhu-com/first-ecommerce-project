@@ -1,22 +1,32 @@
 {% extends 'customadmin/base.html' %}
-{% block title %}Edit Product{% endblock %}
+{% block title %}Edit Category{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
     <div class="row">
-        <div class="col">
-            <h2>Edit category</h2>
-            <form method="post">
-                {% csrf_token %}
-                {{ form.as_p }}
-                
-                <button type="submit" class="btn btn-primary">Update category</button>
-            </form>
-            <hr>
-            <h3>Category Details</h3>
-            <p><strong>Name:</strong> {{category.category_name }}</p>
-            <p><strong>Description:</strong> {{category.cat_image }}</p>
-            
+        <div class="col-md-6 mx-auto">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Edit Category</h2>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'edit_category' category.id %}" enctype="multipart/form-data">
+                        {% csrf_token %}
+                       
+                            <label for="id_category_name" class="form-label">Category Name</label>
+                            <input type="text" id="id_category_name" name="category_name" value="{{ category.category_name }}" class="form-control">
+                            <label for="id_new_cat_image" class="form-label">Upload New Category Image</label>
+                            <input type="file" id="id_new_cat_image" name="cat_image" class="form-control">
+                            <!--{% if category.cat_image %}
+                                <img src="{{ category.cat_image.url }}" alt="{{ category.category_name }} Image" class="mt-2 img-thumbnail" style="max-width: 200px;">
+                            {% endif %}-->  
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary ">Update Category</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 </div>
