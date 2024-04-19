@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import password_validation
 from django.core.exceptions import ValidationError
-from .models import Account
+from .models import Account,UserProfile
 
 class RegistrationForm(forms.ModelForm):
     password = forms.CharField(
@@ -37,17 +37,23 @@ class RegistrationForm(forms.ModelForm):
         if password != confirm_password:
             self.add_error('confirm_password', "Passwords do not match.")
 
-    """def save(self, commit=True):
-        user = super().save(commit=False)
-        user.username = user.email.split("@")[0]  # Assuming you want username to be the part before '@' in email
-        if commit:
-            user.save()
-        return user"""
+class UserForm(forms.ModelForm):
+    class Meta:
+        model=Account
+        fields=('first_name','last_name','phone_number')   
 
-    """def clean(self):
-        cleaned_data = super(RegistrationForm,self).clean()
-        password = cleaned_data.get("password")
-        confirm_password = cleaned_data.get("confirm_password")
-        if password != confirm_password:
-            raise forms.ValidationError("The passwords does not match.")
-        return cleaned_data"""
+    def __init__(self,*args,**kwargs):
+        super(UserForm,self).__init__(*args,**kwargs) 
+        for field in self.fields:
+            self.fields[field].widget.attrs['class']='form-control'
+
+class UserProfileForm(forms.ModelForm):
+    profile_picture=forms.ImageField(required=False,error_messages={'invalid':("Image files only")},widget=forms.FileInput)
+    class Meta:
+        model=UserProfile
+        fields = ('address_line_1','address_line_2','city','state','country','profile_picture')
+
+    def __init__(self,*args,**kwargs):
+        super(UserProfileForm,self).__init__(*args,**kwargs) 
+        for field in self.fields:
+            self.fields[field].widget.attrs['class']='form-control'

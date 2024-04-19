@@ -20,6 +20,11 @@ urlpatterns=[
     path('delete_category/<int:category_id>/', views.delete_category, name='delete_category'),
     path('edit_category<int:category_id>/', views.edit_category, name='edit_category'),
 
+    path('orders/',views.Orders_view,name='orders'),
+    path('cancel_order/<int:order_id>/',views.Cancel_order,name='cancel_order'),
+    path('order_detail/<int:order_id>/',views.Order_detail,name='order_detail'),
+    
+
 
     
     

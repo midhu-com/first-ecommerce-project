@@ -8,6 +8,9 @@ from store.models import Image
 from .forms import ProductForm,ProductImageForm,CategoryForm
 from django.shortcuts import get_object_or_404
 import logging
+from django.shortcuts import render, redirect
+from .forms import CategoryForm
+from orders.models import Order,OrderProduct
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)  # Set the logging level as per your requirement
@@ -30,7 +33,7 @@ def user_view(request):
 
 
 def products_view(request):
-    # Query all registered users
+    # Query all listed products
     product_list = Product.objects.all()
 
     # Prepare user data to pass to the template
@@ -40,7 +43,7 @@ def products_view(request):
 
 
 def category_view(request):
-    # Query all registered users
+    # Query all listed categories
     category_list = Category.objects.all()
 
     # Prepare user data to pass to the template
@@ -48,8 +51,31 @@ def category_view(request):
     
     return render(request,'customadmin/categories.html',context)
 
-from django.shortcuts import render, redirect
-from .forms import CategoryForm
+
+def Orders_view(request):
+    # Query all registered users
+    orders_list = Order.objects.all()
+   
+
+    # Prepare user data to pass to the template
+    context={'orders_list':orders_list}
+    
+    return render(request,'customadmin/orders.html',context)
+
+
+def Order_detail(request,order_id):
+    order_detail=OrderProduct.objects.filter(order__order_number=order_id)
+    order=Order.objects.get(order_number=order_id)
+    subtotal=0
+    for i in order_detail:
+        subtotal +=i.product_price * i.quantity
+    context={
+        'order_detail':order_detail,
+        'order':order,
+        'subtotal':subtotal,
+    }
+    return render(request,'customadmin/order_detail.html',context)
+
 
 
 #add new category
@@ -171,6 +197,23 @@ def edit_category(request, category_id):
 
     return render(request, 'customadmin/edit_category.html', {'form': form, 'category': category})
 
+def Cancel_order(request, order_id):
+    # Get the order object from the database
+    order = get_object_or_404(Order, pk=order_id)
+    
+    # Check if the order belongs to the current user or if the user has permission to cancel orders
+    if request.user == order.user or request.user.has_perm('your_app.cancel_order'):
+        # Cancel the order (you may need to implement a method on your Order model to update the status)
+        order.status = 'Cancelled'
+        order.save()
+        # Optionally, you can add a message to indicate that the order has been canceled
+        messages.success(request, "Order has been canceled successfully.")
+    else:
+        # If the user does not have permission to cancel the order, display an error message
+        messages.error(request, "You do not have permission to cancel this order.")
+    
+    # Redirect back to the orders page or any other appropriate URL
+    return redirect('orders')
 
 
 

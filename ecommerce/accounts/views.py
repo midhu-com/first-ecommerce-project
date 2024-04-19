@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect
-from .forms import RegistrationForm
+from .forms import RegistrationForm,UserForm,UserProfileForm
 from django.contrib import messages, auth
 from django.contrib.auth.decorators import login_required
 from django.contrib.sites.shortcuts import get_current_site
@@ -11,10 +11,12 @@ from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import EmailMessage
 from django.contrib.auth import get_user_model
 from django.http import HttpResponse
-from .models import Account
+from .models import Account,UserProfile
 from carts.models import Cart,Cartitem
 from carts.views import _cart_id
-
+from orders.models import Order,OrderProduct
+import requests
+from django.shortcuts import get_object_or_404
 
 def register(request):
     if request.method == 'POST':
@@ -65,31 +67,86 @@ def user_login(request):
 
         if user is not None:
             try:
+                
                 cart = Cart.objects.get(cart_id=_cart_id(request))
+            
+                # Check if a cart item exists for the specified cart
                 is_cart_item_exists = Cartitem.objects.filter(cart=cart).exists()
+                
                 if is_cart_item_exists:
+                    # Retrieve the cart item associated with the specified cart
                     cart_item = Cartitem.objects.filter(cart=cart)
-                    for item in cart_item:
-                        item.user = user
-                        item.save()
 
+                    # getting the product variations by cart id
+                    product_variation=[]
+                    for item in cart_item:
+                        variation=item.variations.all()
+                        product_variation.append(list(variation))
+
+                        # get the cart items from the user to access his product variations
+                        cart_item=Cartitem.objects.filter(user=user)
+                        ex_var_list=[]
+                        id=[]
+                        for item in cart_item:
+                            existing_variation=item.variations.all()
+                            ex_var_list.append(list(existing_variation))
+                            id.append(item.id)
+
+                        for pr in product_variation:
+                            if pr in ex_var_list:
+                                index=ex_var_list.index(pr)
+                                item_id=id[index]
+                                item=Cartitem.objects.get(id=item_id)
+                                item.quantity += 1
+                                item.user=user
+                                item.save()
+                            else:
+                                cart_item=Cartitem.objects.filter(cart=cart)
+                                for item in cart_item:
+                                    item.user = user
+                                    item.save()
+
+                    
+                    
             except:
+                
                 # Handle the case where the cart does not exist
-                 pass  # Ignoring the error as cart might not exist for all users
+                pass  # Ignoring the error as cart might not exist for all users
             if user.is_superuser:
                 return redirect('admin_view')
             else:
                 auth.login(request, user)
                 #messages.success(request, "You are logged in.")
-                return redirect('index')  
+                # when i add cart without login cleck checkout redirects to login afetr login it redirects to checkout page.for imp this use requesstss library.
+                url=request.META.get('HTTP_REFERER')
+                try:
+                    query=requests.utils.urlparse(url).query
+                    
+                    #next=/carts/checkout/
+                    params=dict(x.split('=')for x in query.split('&'))
+                    if 'next' in params:
+                        nextPage=params['next']
+                        return redirect(nextPage)
+                      
+                except:
+                    return redirect('dashboard')
         else:
             messages.error(request, "Invalid login credentials")
             return redirect('login')
     return render(request, 'accounts/login.html')
 
+
+# dashboard is only access when logged in
+
 @login_required(login_url='login')
 def dashboard(request):
-    return render(request, 'accounts/dashboard.html')
+    orders=Order.objects.order_by('-created_at').filter(user_id=request.user.id,is_ordered=True)
+    orders_count=orders.count()
+    context={
+        'orders_count':orders_count,
+    }
+    return render(request, 'accounts/dashboard.html',context)
+
 
 def activate_account(request,uidb64,token):
     try:
@@ -165,3 +222,64 @@ def resetpassword(request):
             return redirect('resetpassword')
     else:
          return render(request,'accounts/resetpassword.html')
+    
+
+# show the order details of the current user
+def My_Orders(request):
+    orders=Order.objects.filter(user=request.user,is_ordered=True).order_by('-created_at')
+    context={
+        'orders': orders,
+    }
+    return render(request,'accounts/my_orders.html',context)
+
+#edit the user profile details
+@login_required
+def Edit_profile(request):
+    # Get the UserProfile instance for the current user
+    userprofile = get_object_or_404(UserProfile, user=request.user)
+    
+    if request.method == 'POST':
+        #Populate the forms with the POST data and instances
+        user_form = UserForm(request.POST, instance=request.user)
+        profile_form = UserProfileForm(request.POST, request.FILES, instance=userprofile)
+
+        # Check if both forms are valid
+        if user_form.is_valid() and profile_form.is_valid():
+            # Save both forms
+            user_form.save()
+            profile_form.save()
+            messages.success(request, 'Your profile has been updated')
+            return redirect('edit_profile')  # Redirect to the same page after successful update
+        else:
+            messages.error(request, 'Please correct the errors below.')
+
+    else:
+        # If it's not a POST request, create forms with instances
+        user_form = UserForm(instance=request.user)
+        profile_form = UserProfileForm(instance=userprofile)
+
+    context = {
+        'user_form': user_form,
+        'profile_form': profile_form,
+        'user_profile':userprofile,
+    }
+    return render(request, 'accounts/edit_profile.html', context)
+
+# generate invoice when click on order number at my order
+
+@login_required(login_url='login')
+def Order_detail(request,order_id):
+    order_detail=OrderProduct.objects.filter(order__order_number=order_id)
+    order=Order.objects.get(order_number=order_id)
+    subtotal=0
+    for i in order_detail:
+        subtotal +=i.product_price * i.quantity
+    context={
+        'order_detail':order_detail,
+        'order':order,
+        'subtotal':subtotal,
+    }
+    return render(request,'accounts/order_detail.html',context)
+
+
+    

@@ -1,11 +1,14 @@
-from django.shortcuts import render,get_object_or_404
-from django.http import HttpResponse,Http404
-from.models import Product
+from django.shortcuts import render,get_object_or_404,redirect
+from django.http import HttpResponseRedirect,Http404
+from.models import Product,ReviewRating
 from category.models import Category
 from carts.views import _cart_id
 from carts.models import Cartitem
 from django.core.paginator import EmptyPage,PageNotAnInteger,Paginator
 from django.db.models import Q
+from .forms import ReviewForm
+from django.contrib import messages
+from orders.models import OrderProduct
 
 # Create your views here.
 def store(request,category_slug=None):
@@ -43,10 +46,24 @@ def product_detail(request,category_slug,product_slug):
         
     except Product.DoesNotExist:
         raise Http404("Product does not exist")
+    orderproduct = None
+    if request.user.is_authenticated:
+
+        try:
+            orderproduct=OrderProduct.objects.get(user=request.user,product=single_product)
+        except OrderProduct.DoesNotExist:
+            pass
+        
+
+    # get the review
+    reviews=ReviewRating.objects.filter(product_id=single_product.id,status=True)
+    
     context = {
         'single_product': single_product,
         'product_images': product_images, 
         'in_cart':in_cart,
+        'orderproduct':orderproduct,
+        'reviews':reviews,
     }
     return render (request,'store/product_detail.html',context)
 
@@ -63,3 +80,30 @@ def search(request):
     }
 
     return render(request,'store/store.html',context)
+
+def Submit_review(request,product_id):
+    url=request.META.get('HTTP_REFERER','/')
+    if request.method == 'POST':
+        try:
+            reviews=ReviewRating.objects.get(user__id=request.user.id,product__id=product_id)
+            form=ReviewForm(request.POST,instance=reviews)
+            form.save()
+            messages.success(request,"Thankyou! Your reviews has been updated. ")
+           
+
+        except ReviewRating.DoesNotExist:
+            form=ReviewForm(request.POST)
+            if form.is_valid():
+                data =  form.save(commit=False)
+                data.subject=form.cleaned_data['subject']
+                data.review=form.cleaned_data['review']
+                data.rating=form.cleaned_data['rating']
+                data.ip=request.META.get('REMOTE_ADDR')
+                data.product_id=product_id
+                data.user_id=request.user.id
+                data.save()
+                messages.success(request,"Thankyou! Your reviews has been submitted. ")
+        return HttpResponseRedirect(url)
+    else:
+            # If not a POST request, redirect to the referrer URL
+        return HttpResponseRedirect(url)

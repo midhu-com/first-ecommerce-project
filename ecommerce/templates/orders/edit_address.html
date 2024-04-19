@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<form method="post" action="{% url 'edit_address' address_id=address_id %}" enctype="multipart/form-data">
+    {% csrf_token %}
+    {% if address.id %}
+        <p>Address ID: {{ address.id }}</p>
+    {% else %}
+        <p>No address ID found</p>
+    {% endif %}
+    <label for="id_first_name">First Name:</label>
+    <input type="text" id="id_first_name" name="first_name" value="{{ address.first_name }}" class="form-control">
+    <!-- Display validation errors -->
+    {{ form.errors }}
+    <button type="submit">Update Address</button>
+</form>
+
+{% endblock %}

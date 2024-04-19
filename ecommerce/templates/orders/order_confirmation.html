@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="breadcrumb-option">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="breadcrumb__links">
+                    <a href="{% url 'index' %}"><i class="fa fa-home"></i> Home|</a>
+                    <a href="{% url 'store' %}">All Products|</a></li>
+                    <a href="{% url 'cart' %}">Cart|</a></li>
+                    <!-- <a href="#"></a> -->
+                    <span>{{ single_product.product_name }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Breadcrumb End -->
+
+<section class="section-content padding-y bg">
+    <div class="container">
+        <div class="row">	
+            <aside class="col-lg-8">
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="text-center text-success mb-3">Order Confirmation</h4>
+                        <p class="text-center text-success">Thank you for your order! Here are the order details:</p>
+                    
+                        <h4 class="mb-3">Order Information</h4>
+                        <p><strong>Order Number:</strong> {{ order.order_number }}</p>
+                        <p><strong>Order Total:</strong> ${{ order.order_total }}</p>
+                        <p><strong>Order Status:</strong> <span class="badge badge-success">{{ order.status }}</span></p>
+                        <!-- Add any other order information you want to display -->
+                    
+                        <h4 class="mt-4">Shipping Information</h4>
+                        <p><strong>Name:</strong> {{ order.full_name }}</p>
+                        <p><strong>Email:</strong> {{ order.email }}</p>
+                        <p><strong>Phone:</strong> {{ order.phone }}</p>
+                        <p><strong>Address:</strong> {{ order.full_address }}</p>
+                        <!-- Add any other shipping information you want to display -->
+                    
+                        
+                    </div>
+                </div>
+                <a href="{% url 'store' %}" class="btn btn-light btn-block mt-4">Continue Shopping</a>
+            </aside> <!-- col.// -->
+
+           
+        </div> <!-- row.// -->
+    </div> <!-- container .//  -->
+</section>
+<!-- SECTION CONTENT END// -->
+{% endblock %}
