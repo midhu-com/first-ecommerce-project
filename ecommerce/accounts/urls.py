@@ -14,9 +14,17 @@ urlpatterns=[
     path('resetpassword/',views.resetpassword,name='resetpassword'), 
 
     path('my_orders/',views.My_Orders,name='my_orders'),
+    path('profile/',views.Profile,name='profile'),
     path('edit_profile/',views.Edit_profile,name='edit_profile'),
 
     path('order_detail/<int:order_id>/',views.Order_detail,name='order_detail'),
+    path('add_address/',views.AddAddress, name='add_address'),
+    path('edit_address/<int:address_id>/',views.EditAddress, name='edit_address'),
+    path('delete_address/<int:address_id>/',views.DeleteAddress, name='delete_address'),
+    path('address_list/',views.AddressList, name='address_list'),
+
+
+    
     
     
     

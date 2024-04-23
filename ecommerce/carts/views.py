@@ -2,7 +2,7 @@ from django.shortcuts import render,redirect
 from .models import Cart,Cartitem
 from django.shortcuts import redirect
 from store.models import Product
-from django.http import HttpResponse
+from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ObjectDoesNotExist
 from store.models import Variation
@@ -49,6 +49,23 @@ def add_cart(request, product_id):
 
         existing_cart_item = existing_cart_item.first()
 
+        # Check if there is enough stock to add the product
+        stock_limit_exceeded = False
+
+        if existing_cart_item:
+        # If an existing cart item with the same variations is found, check if adding 1 will exceed the stock limit
+            if existing_cart_item.quantity + 1 > product.stock:
+                stock_limit_exceeded = True
+        else:
+        # If no existing cart item is found, check if adding 1 will exceed the stock limit
+            if 1 > product.stock:
+                stock_limit_exceeded = True
+
+        if stock_limit_exceeded:
+            return HttpResponseBadRequest("Sorry, the stock limit for this product has been exceeded.")
+
+
+         # If stock limit is not exceeded, proceed with adding the product to the cart
         if existing_cart_item:
             # If an existing cart item with the same variations is found, increase its quantity
             existing_cart_item.quantity += 1
@@ -93,6 +110,7 @@ def add_cart(request, product_id):
             existing_cart_item = existing_cart_item.filter(variations=variation)
 
         existing_cart_item = existing_cart_item.first()
+
 
         if existing_cart_item:
             # If an existing cart item with the same variations is found, increase its quantity

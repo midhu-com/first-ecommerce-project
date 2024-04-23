@@ -55,7 +55,8 @@ def category_view(request):
 def Orders_view(request):
     # Query all registered users
     orders_list = Order.objects.all()
-   
+    
+
 
     # Prepare user data to pass to the template
     context={'orders_list':orders_list}
@@ -63,7 +64,7 @@ def Orders_view(request):
     return render(request,'customadmin/orders.html',context)
 
 
-def Order_detail(request,order_id):
+def Invoice(request,order_id):
     order_detail=OrderProduct.objects.filter(order__order_number=order_id)
     order=Order.objects.get(order_number=order_id)
     subtotal=0
@@ -74,7 +75,7 @@ def Order_detail(request,order_id):
         'order':order,
         'subtotal':subtotal,
     }
-    return render(request,'customadmin/order_detail.html',context)
+    return render(request,'customadmin/invoice.html',context)
 
 
 
@@ -197,7 +198,7 @@ def edit_category(request, category_id):
 
     return render(request, 'customadmin/edit_category.html', {'form': form, 'category': category})
 
-def Cancel_order(request, order_id):
+def Order_cancel(request, order_id):
     # Get the order object from the database
     order = get_object_or_404(Order, pk=order_id)
     

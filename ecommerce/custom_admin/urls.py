@@ -21,8 +21,8 @@ urlpatterns=[
     path('edit_category<int:category_id>/', views.edit_category, name='edit_category'),
 
     path('orders/',views.Orders_view,name='orders'),
-    path('cancel_order/<int:order_id>/',views.Cancel_order,name='cancel_order'),
-    path('order_detail/<int:order_id>/',views.Order_detail,name='order_detail'),
+    path('order_cancel/<int:order_id>/',views.Order_cancel,name='order_cancel'),
+    path('invoice/<int:order_id>/',views.Invoice,name='invoice'),
     
 
 

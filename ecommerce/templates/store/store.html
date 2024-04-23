@@ -16,7 +16,7 @@
         </div>
     </div>
 </div>
-<!-- Breadcrumb End -->
+<!-- Breadcrumb End -->
 <section class="section-pagetop bg">
     <div class="container">
         {% if 'search' in request.path %}
@@ -59,36 +59,34 @@
         </article> <!-- filter-group  .// -->
         <article class="filter-group">
             <header class="card-header">
-                <a href="#" data-toggle="collapse" data-target="#collapse_4" aria-expanded="true" class="">
-                    <i class="icon-control fa fa-chevron-down"></i>
-                    <h6 class="title">Sizes </h6>
-                </a>
-            </header>
-            <div class="filter-content collapse show" id="collapse_4" >
-                <div class="card-body">
-                  <label class="checkbox-btn">
-                    <input type="checkbox">
-                    <span class="btn btn-light"> XS </span>
-                  </label>
-    
-                  <label class="checkbox-btn">
-                    <input type="checkbox">
-                    <span class="btn btn-light"> SM </span>
-                  </label>
-    
-                  <label class="checkbox-btn">
-                    <input type="checkbox">
-                    <span class="btn btn-light"> LG </span>
-                  </label>
-    
-                  <label class="checkbox-btn">
-                    <input type="checkbox">
-                    <span class="btn btn-light"> XXL </span>
-                  </label>
-            </div><!-- card-body.// -->
-            </div>
-        </article> <!-- filter-group .// -->
-        
+                <div class="row">
+                    <div class="item-option-select">
+                        <h6>Select Size</h6>
+                        <select name="size" class="form-control">
+                            <option value="" disabled selected>Select</option>
+                            {% for variation in single_product.variation_set.all %}
+                                {% if variation.variation_category == 'size' %}
+                                    <option value="{{ variation.variation_value | lower }}">{{ variation.variation_value | capfirst }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div> <!-- row.// -->
+                
+                <div class="row">
+                    <div class="item-option-select">
+                        <h6>Choose Color</h6>
+                        <select name="color" class="form-control" required>
+                            <option value="" disabled selected>Select</option>
+                            {% for variation in single_product.variation_set.all %}
+                                {% if variation.variation_category == 'color' %}
+                                    <option value="{{ variation.variation_value | lower }}">{{ variation.variation_value | capfirst }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div> <!-- row.// -->
+                
         <article class="filter-group">
             <header class="card-header">
                 <a href="#" data-toggle="collapse" data-target="#collapse_3" aria-expanded="true" class="">
@@ -158,6 +156,14 @@
                     <a href="{{ product.get_url }}" class="title">{{ product.product_name }}</a>
                     <div class="price mt-1">${{ product.price }}
                     </div>
+                    <div>                                                                                           
+                        {% if product.stock <= 0 %}
+                            <h6 class="text-danger">Out Of Stock </h6>
+                        {% else %}
+                        <h6 class="text-warning">{{product.stock}} stocks are left!</h6>
+                    {% endif %}
+                    </div>
+                    
                  <!--<a href="{% url 'add_cart' product.id %}" class="btn btn-primary btn-block">Add to Cart</a> when the product is out of stock it not necessary to add it to add to cart so-->
                  <a href="{{ product.get_url }}" class="btn btn-primary btn-block">View Details</a>
                 </figcaption>
@@ -208,3 +214,5 @@
     </section>
     <!-- ========================= SECTION CONTENT END// ========================= -->
 {% endblock %}
+
+

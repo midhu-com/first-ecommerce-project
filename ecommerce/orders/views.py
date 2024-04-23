@@ -9,7 +9,7 @@ from django.template.context_processors import csrf
 from django.urls import reverse
 from orders.models import Address
 from django.contrib.auth.decorators import login_required
-
+from django.contrib import messages
 
 def Payments(request):
 
@@ -85,6 +85,7 @@ def Place_order(request, total=0, quantity=0):
                 product.save()
 
             order=Order.objects.get(user=current_user,is_ordered=False,order_number=order_number)
+            
             context={
                 'order':order,
                 'cart_items':cart_items,
@@ -114,10 +115,10 @@ def Cash_on_delivery(request, order_number):
     
 
     # Update product stock after successful order
-    for cart_item in cart_items:
-        product = cart_item.product
-        product.stock -= cart_item.quantity
-        product.save()
+    #for cart_item in cart_items:
+        #product = cart_item.product
+        #product.stock -= cart_item.quantity
+        #product.save()
 
     # Update the order status to indicate payment confirmation
     order.is_ordered = True
@@ -126,7 +127,6 @@ def Cash_on_delivery(request, order_number):
     # Update the order status to 'ACCEPTED'
     order.status = 'COMPLETED'
     order.save()
-    
     
 
     #save the order details to orderproduct
@@ -150,34 +150,23 @@ def Cash_on_delivery(request, order_number):
     }
     return render(request, 'orders/order_confirmation.html', context)
 
+def cancel_orderr(request, order_number):
+    # Retrieve the order based on the order number
+    order = get_object_or_404(Order, order_number=order_number)
+    
+    # Update order status to 'Cancelled' and set is_ordered to False
+    order.status = 'Cancelled'
+    order.is_ordered = True
+    order.save()
 
-def Add_address(request):
-    if request.method == 'POST':
-        form = AddressForm(request.POST)
-        if form.is_valid():
-            address = form.save(commit=False)
-            address.user = request.user
-            address.save()
-            return redirect('address_list')  # Redirect to address list view after adding address
-    else:
-        form = AddressForm()
-    return render(request, 'orders/add_address.html', {'form': form})
+    # Retrieve order items and update product stock
+    order_items = OrderProduct.objects.filter(order=order)
+    for order_item in order_items:
+        product = order_item.product
+        product.stock += order_item.quantity  # Increase product stock
+        product.save()
+    messages.success(request, "Order has been cancelled successfully.")
+    return redirect('my_orders')  # Redirect to a success page after cancellation
 
-def Edit_address(request, address_id):
-    address = get_object_or_404(Address, id=address_id)
-    if request.method == 'POST':
-        form = AddressForm(request.POST, instance=address)
-        if form.is_valid():
-            form.save()
-            return redirect('payments')  # Redirect to payments view after editing address
-    else:
-        form = AddressForm(instance=address)
-    return render(request, 'orders/edit_address.html', {'form': form, 'address': address})
 
-def Delete_address(request, address_id):
-    address = get_object_or_404(Address, pk=address_id)
-    if request.method == 'POST':
-        address.delete()
-        return redirect('checkout')  # Redirect to checkout view after deleting address
-    return render(request, 'delete_address.html', {'address': address})
 

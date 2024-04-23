@@ -71,7 +71,9 @@
 								<input type="hidden" name="{{item.variation_category | lower}}" value="{{item.variation_value | capfirst }}">
 									
 									{% endfor %}
-									<button class="btn btn-light" type="submit" id="button-minus"> <i class="fa fa-plus"></i> </button>
+									{% if cart_item.quantity <= cart_item.product.stock %}
+										<button class="btn btn-light" type="submit" id="button-minus"> <i class="fa fa-plus"></i> </button>
+									{% endif %}
 							</div>
 						</form>
 						</div> <!-- input-group.// -->

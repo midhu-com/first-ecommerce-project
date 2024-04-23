@@ -23,7 +23,7 @@
                     {% for order in orders_list %}
                        
                         <tr>
-                            <td><a href="{% url 'order_detail' order.order_number%}">{{order.order_number}}</a></td>
+                            <td><a href="{% url 'invoice' order.order_number%}">{{order.order_number}}</a></td>
                             <td>{{ order.first_name }}</td>
                             <td>{{ order.email }}</td>
                             <td>{{ order.created_at}}</td>
@@ -34,7 +34,7 @@
                         <td>
                             <!-- for cancel the order actions -->
 
-                            <form action="{% url 'cancel_order' order.id %}" method="post" style="display: inline;">
+                            <form action="{% url 'order_cancel' order.id %}" method="post" style="display: inline;">
                                 {% csrf_token %}
                                 <button type="submit" class="btn btn-success">Cancel</button>
                             </form>
