@@ -21,7 +21,7 @@ urlpatterns=[
     path('add_address/',views.AddAddress, name='add_address'),
     path('edit_address/<int:address_id>/',views.EditAddress, name='edit_address'),
     path('delete_address/<int:address_id>/',views.DeleteAddress, name='delete_address'),
-    path('address_list/',views.AddressList, name='address_list'),
+    
 
 
     

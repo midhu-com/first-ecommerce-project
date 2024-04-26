@@ -40,6 +40,56 @@
                         </div>
                     </div> <!-- card-body .// -->
                 </article> <!-- order-group.// -->
+
+                <article class="card">
+                    <header class="card-header">
+                        <h2 class="d-inline-block">Address Details</h2>
+                    </header>
+                    <div class="card-body">
+                        {% if address %}
+                        <ul>
+                            {% for add in address %}
+                            <li>
+                                <div class="row align-items-center">
+                                    <div class="col">
+                                
+                                        <strong>Address:</strong> {{ add.address_line_1 }} <br>
+                                        <strong>City:</strong> {{ add.city }} <br>
+                                        <strong>State:</strong> {{ add.state }} <br>
+                                        <strong>Country:</strong> {{ add.country }} <br>
+                                    </div>
+                                    <br>
+                                    <div class="col-auto">
+                                        <form method="post" action="{% url 'edit_address' address_id=add.id %}">
+                                    
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-secondary">Edit</button>
+                                        </form>
+                                    </div>
+                                
+                                    <div> 
+                                        <form method="post" action="{% url 'delete_address' address_id=add.id %}">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-danger">Delete</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <p>No addresses found.</p>
+                        {% endif %}
+                    </div>
+                    <div class="mt-3 pl-3" style="display: inline-block;">
+                        <a href="{% url 'add_address'  %}" class="btn btn-primary">Add Address</a>
+                    </div>
+                    <!-- Checkout button -->
+                    <div class="text-center">
+                        <a href="{% url 'checkout' %}" class="btn btn-success">Checkout</a>
+                    </div>
+                </article>
+                
             </main>
         </div> <!-- row.// -->
     </div>

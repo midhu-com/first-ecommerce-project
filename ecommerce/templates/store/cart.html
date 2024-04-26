@@ -116,7 +116,11 @@
 			<p class="text-center mb-3">
 				<img src="{% static '/images/misc/payments.png' %}" height="26">
 			</p>
-			<a href="{% url 'checkout' %}" class="btn btn-primary btn-block"> Checkout </a>
+			{% if address in billing_address %}
+				<a href="{% url 'address_list' %}" class="btn btn-primary btn-block"> Checkout </a>
+			{% else %}
+				<a href="{% url 'checkout' %}" class="btn btn-primary btn-block"> Checkout </a>
+			{% endif %}
 			<a href="{% url 'store' %}" class="btn btn-light btn-block">Continue Shopping</a>
 		</div> <!-- card-body.// -->
 		</div> <!-- card.// -->

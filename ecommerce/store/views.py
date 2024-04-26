@@ -69,11 +69,20 @@ def product_detail(request,category_slug,product_slug):
 
 def search(request):
     products = Product.objects.none()
+    product_count=0
     if 'keyword' in request.GET:
         keyword = request.GET['keyword']
         if keyword:
             products = Product.objects.filter(Q(description__icontains=keyword) | Q(product_name__icontains=keyword)).order_by('-created_date')
             product_count=products.count()
+
+        # sorting
+        sort_by=request.GET.get('sort_by')
+        if sort_by =='price_low_high':
+            products = products.order_by('price')
+
+        elif sort_by == 'price_high_low':
+            products = products.order_by('-price')
     context={
         'products':products,
         'product_count':product_count,

@@ -289,31 +289,36 @@ def Order_detail(request,order_id):
 def Profile(request):
     # Get the UserProfile instance for the current user
     userprofile = get_object_or_404(UserProfile, user=request.user)
+    address=Address.objects.filter(user=request.user)
+    print("user profile",userprofile)
     
     context = {
         
         'user_profile':userprofile,
+        'address':address,
     }
     return render(request, 'accounts/profile.html', context)
 
 
 #Add new address/edit/delete/view.py
 
-def AddressList(request):
-    addresses = Order.objects.filter(user=request.user)
-    return render(request, 'accounts/address_list.html', {'addresses': addresses})
-
+@login_required(login_url='login')
 def AddAddress(request):
     if request.method == 'POST':
-        form = AddressForm(request.POST)
-        if form.is_valid():
-            address = form.save(commit=False)
+        address_form = AddressForm(request.POST)
+        if address_form.is_valid():
+            address = address_form.save(commit=False)
             address.user = request.user
             address.save()
-            return redirect('address_list')  # Redirect to address list view
+            messages.success(request,'Address added successfully')
+            return redirect('checkout') # Redirect to profile view
     else:
-        form = AddressForm()
-    return render(request, 'accounts/add_address.html', {'form': form})
+        address_form = AddressForm()
+
+    context={
+        'address_form':address_form,
+    }
+    return render(request, 'accounts/add_address.html', context)
 
 def EditAddress(request, address_id):
     address = get_object_or_404(Address, id=address_id)
@@ -321,7 +326,7 @@ def EditAddress(request, address_id):
         form = AddressForm(request.POST, instance=address)
         if form.is_valid():
             form.save()
-            return redirect('payments')  # Redirect to address list view
+            return redirect('checkout')  # Redirect to checkout
     else:
         form = AddressForm(instance=address)
     return render(request, 'accounts/edit_address.html', {'form': form, 'address': address})
@@ -330,6 +335,6 @@ def DeleteAddress(request, address_id):
     address = get_object_or_404(Address, id=address_id)
     if request.method == 'POST':
         address.delete()
-        return redirect('address_list')  # Redirect to address list view
+        return redirect('checkout')  # Redirect to address list view
     return render(request, 'delete_address.html', {'address': address})
 

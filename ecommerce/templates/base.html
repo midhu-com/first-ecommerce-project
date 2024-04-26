@@ -91,7 +91,16 @@ $(document).ready(function() {
 	<div class="col-lg  col-md-6 col-sm-12 col">
 		<form action="{% url 'search' %}" class="search" method='GET'>
 			<div class="input-group w-100">
-			    <input type="text" class="form-control" style="width:60%;" placeholder="Search" name="keyword">
+				<input type="text" class="form-control" style="width:60%;" placeholder="Search" name="keyword" value="{{request.GET.keyword}}">
+			    <select class="custom-select" name="sort_by">
+					<option value=""> sort_by </option>
+					<option value="popularity">Popularity</option>
+					<option value="price_low_high">Price:Low to High</option>
+					<option value="price_high_low">Price:High to Low</option>
+					<option value="name_a_to_z">Name:A to Z</option>
+					<option value="name_z_to_a">Name:Z to A</option>
+					<option value="avg_rating">Average Ratings</option>
+				</select>
 			    
 			    <div class="input-group-append">
 			      <button class="btn btn-primary" type="submit">
