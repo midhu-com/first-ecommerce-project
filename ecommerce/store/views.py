@@ -9,6 +9,7 @@ from django.db.models import Q
 from .forms import ReviewForm
 from django.contrib import messages
 from orders.models import OrderProduct
+from carts.models import wishlist
 
 # Create your views here.
 def store(request,category_slug=None):
@@ -42,7 +43,10 @@ def product_detail(request,category_slug,product_slug):
         single_product=Product.objects.get(category__slug=category_slug,slug=product_slug)
         product_images = single_product.product_images.all()  # Assuming you have a related name 'images' for the image field
         in_cart=Cartitem.objects.filter(cart__cart_id=_cart_id(request),product=single_product).exists()
-        
+        if request.user.is_authenticated:
+            in_wishlist=wishlist.objects.filter(user=request.user.id,product=single_product).exists()
+        else:
+            in_wishlist = False
         
     except Product.DoesNotExist:
         raise Http404("Product does not exist")
@@ -50,7 +54,7 @@ def product_detail(request,category_slug,product_slug):
     if request.user.is_authenticated:
 
         try:
-            orderproduct=OrderProduct.objects.get(user=request.user,product=single_product)
+            orderproduct=OrderProduct.objects.filter(user=request.user,product=single_product)
         except OrderProduct.DoesNotExist:
             pass
         
@@ -64,6 +68,7 @@ def product_detail(request,category_slug,product_slug):
         'in_cart':in_cart,
         'orderproduct':orderproduct,
         'reviews':reviews,
+        'in_wishlist':in_wishlist,
     }
     return render (request,'store/product_detail.html',context)
 

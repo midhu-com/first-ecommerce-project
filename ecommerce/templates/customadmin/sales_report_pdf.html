@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Report</title>
+    <style>
+        /* Add your CSS styles here */
+        body {
+            font-family: Arial, sans-serif;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #dddddd;
+            text-align: left;
+            padding: 8px;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h1>Sales Report</h1>
+    <p>Period: {{ period }}</p>
+    <p>Start Date: {{ start_date }}</p>
+    <p>End Date: {{ end_date }}</p>
+    <p>Total Sales: {{ total_sales }}</p>
+    <p> Discounted Total: {{ total_discount }}</p>
+    <p>Total Coupons: {{ total_coupons }}</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Order ID</th>
+                <th>Customer</th>
+                <th>Total Value</th>
+                <th>Discounted Total</th>
+                <th>Coupon</th>
+                <th>Created At</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order in orders %}
+            <tr>
+                <td>{{ order.id }}</td>
+                <td>{{ order.user }}</td>
+                <td>{{ order.total_value }}</td>
+                <td>{{ order.discounted_total }}</td>
+                <td>{{ order.coupon_discount }}</td>
+
+                <td>{{ order.created_at }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

@@ -2,6 +2,7 @@ from django.db import models
 from accounts.models import Account
 from store.models import Product,Variation
 
+from django.utils import timezone
 
 class Payment(models.Model):
     user=models.ForeignKey(Account,on_delete=models.CASCADE)
@@ -21,6 +22,7 @@ class Order(models.Model):
         ('Accepted','Accepted'),
         ('Completed','Completed'),
         ('Cancelled','Cancelled'),
+        ('Returned','Returned'),
 
     )
     user=models.ForeignKey(Account,on_delete=models.SET_NULL,null=True)
@@ -39,10 +41,15 @@ class Order(models.Model):
     order_total=models.FloatField()
     tax=models.FloatField()
     status=models.CharField(max_length=20,choices=STATUS,default='New')
+    coupon = models.CharField(max_length=100, blank=True, null=True)  # Example field for coupon
+    final_total = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # Example field for final_total
     ip=models.CharField(max_length=20,blank=True)
     is_ordered=models.BooleanField(default=False)
     created_at=models.DateTimeField(auto_now_add=True)
     updated_at=models.DateTimeField(auto_now_add=True)
+    original_total_value = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    discounted_total = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    coupon_discount  = models.DecimalField(max_digits=15, decimal_places=2, default=0)
 
     def full_name(self):
         return f'{self.first_name} {self.last_name}'
@@ -85,7 +92,25 @@ class Address(models.Model):
         return f"{self.first_name} {self.last_name}"
     
 
+class Coupon(models.Model):
+    code = models.CharField(max_length=50,unique=True)
+    discount = models.DecimalField(max_digits=10,decimal_places=2)
+    valid_from = models.DateTimeField()
+    valid_to = models.DateTimeField()
 
+    def is_valid(self):
+        now =  timezone.now()
+        return self.valid_from <= now <=self.valid_to
+    
+class Wallet(models.Model):
+    user = models.OneToOneField(Account,on_delete=models.CASCADE)
+    balance = models.DecimalField(max_digits=10,decimal_places=2,default=0)
+
+    def __str__(self):
+        return f"{self.user.username}'s Wallet"
+    
+
+        
 
 
 

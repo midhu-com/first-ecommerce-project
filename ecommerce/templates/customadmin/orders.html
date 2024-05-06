@@ -23,7 +23,7 @@
                     {% for order in orders_list %}
                        
                         <tr>
-                            <td><a href="{% url 'invoice' order.order_number%}">{{order.order_number}}</a></td>
+                            <td>{{order.order_number}}</a></td>
                             <td>{{ order.first_name }}</td>
                             <td>{{ order.email }}</td>
                             <td>{{ order.created_at}}</td>
@@ -39,6 +39,15 @@
                                 <button type="submit" class="btn btn-success">Cancel</button>
                             </form>
                             
+                        </td>
+                        <td>
+                            <!-- Link to view invoice for the order -->
+                            {% if order.order_number %}
+                                <a href="{% url 'invoice' order.order_number %}">View Invoice</a>
+                            {% else %}
+                                <!-- Handle empty order number case -->
+                                No order number available
+                            {% endif %}
                         </td>
                         
                         </tr>

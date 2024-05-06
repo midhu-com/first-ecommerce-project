@@ -168,3 +168,6 @@ EMAIL_PORT=587
 EMAIL_HOST_USER='midhumol22@gmail.com'
 EMAIL_HOST_PASSWORD='ynka slcm xolz dnzb'
 EMAIL_USE_TLS=True
+
+# Set session timeout to 15 minutes (15 * 60 seconds)
+SESSION_COOKIE_AGE = 900  # 15 minutes

@@ -9,5 +9,11 @@ urlpatterns=[
     path('checkout/', views.checkout, name='checkout'),
     
     
+    path('wishlist/', views.Wishlist, name='wishlist'),
+    path('add_wishlist/<slug:product_slug>/', views.Add_wishlist, name='add_wishlist'),
+    path('remove_wishlist/<int:wishlist_item_id>/', views.Remove_wishlist, name='remove_wishlist'),
+    path('product_detaill/<slug:product_slug>/', views.product_detaill, name='product_detaill'),
+    
+    
     
 ]

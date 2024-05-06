@@ -1,6 +1,5 @@
 from django.shortcuts import render,redirect
-from .models import Cart,Cartitem
-from django.shortcuts import redirect
+from .models import Cart,Cartitem,wishlist
 from store.models import Product
 from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404
@@ -232,3 +231,81 @@ def checkout(request,total=0,quantity=0,cart_items=None):
         'billing_address':billing_address,# Pass the billing address to the template
     }
     return render(request,'store/checkout.html',context)
+
+@login_required(login_url='login')
+def Wishlist(request):
+    if request.method == 'POST':
+        wishlist_item_id = request.POST.get('wishlist_item_id')
+        if wishlist_item_id:
+            wishlist_item = get_object_or_404(wishlist, id=wishlist_item_id)
+            wishlist_item.delete()
+            return redirect('wishlist')
+
+    wishlist_items = wishlist.objects.filter(user=request.user)
+    
+    context = {
+        'wishlist_items': wishlist_items,
+    }
+    return render(request, 'store/wishlist.html',context)
+
+
+# add product to wishlist
+def Add_wishlist(request, product_slug):
+    try:
+        product = Product.objects.get(slug=product_slug)
+        variations = []  # Initialize an empty list to store variations
+
+        # Get the selected variations from the request
+        if request.method == "POST":
+            for item in request.POST:
+                if 'variation_id' in item:
+                    variation_id = request.POST.get(item)
+                    print(f"Variation ID: {variation_id}")
+                    try:
+                        variation = Variation.objects.get(id=variation_id)
+                        variations.append(variation)
+                    except Variation.DoesNotExist:
+                        pass
+
+        # Create the Wishlist item with the selected variations
+        if request.user.is_authenticated:
+            user_instance=request.user
+            wishlist_item = wishlist.objects.create(user=user_instance, product=product)
+        else:
+            return redirect('login')
+        if variations:
+            wishlist_item.variations.set(variations)
+
+
+    except Product.DoesNotExist:
+        return redirect('store')  # Redirect to home page if the product doesn't exist
+
+    return redirect('wishlist')  # Redirect to the wishlist page after adding the product
+
+def Remove_wishlist(request, wishlist_item_id):
+    wishlist_item = get_object_or_404(wishlist, id=wishlist_item_id)
+    wishlist_item.delete()
+    return redirect('wishlist')
+
+
+def product_detaill(request, product_slug):
+    try:
+        single_product = Product.objects.get(slug=product_slug)
+        in_cart = Cartitem.objects.filter(cart__cart_id=_cart_id(request), product=single_product).exists()
+        
+        in_wishlist = wishlist.objects.filter(user=request.user, product=single_product).exists()
+       
+        
+    except Exception as e:
+        raise e
+    
+    
+    context = {
+        'single_product': single_product,
+        'in_cart' : in_cart,
+        'in_wishlist': in_wishlist,
+        
+    }
+    return render(request, 'store/product_detail.html',context)
+
+

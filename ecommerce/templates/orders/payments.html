@@ -44,6 +44,7 @@
             <h5 class="card-header">Payment Method</h5>
             <div class="card-body">
                 <p class="card-text">Cash On Delivery</p>
+                <p class="card-text">PayPal</p>
             </div>
         </div>
         <div class="card">
@@ -108,9 +109,13 @@
 			  <dt>Tax:</dt>
 			  <dd class="text-right"> ${{ tax }}</dd>
 			</dl>
+            <dl class="dlist-align">
+                <dt>Discount:</dt>
+                <dd class="text-right"> ${{ discount_value }}</dd>
+              </dl>
 			<dl class="dlist-align">
 			  <dt>Grand Total:</dt>
-			  <dd class="text-right text-dark b"><strong>${{ grand_total }}</strong></dd>
+			  <dd class="text-right text-dark b"><strong>${{ final_total }}</strong></dd>
 			</dl>
 			<hr>
 			<p class="text-center mb-3">
@@ -119,6 +124,14 @@
             {% if order.order_number %}
 			    <a href="{% url 'cash_on_delivery' order.order_number %}" class="btn btn-primary btn-block">Cash On Delivery</a>
             {% endif %}
+            {% if order.final_total <= wallet.balance %}
+                <a href="{% url 'add_to_wallet' order.order_number %}" class="btn btn-primary btn-block">Wallet Payment</a>
+            
+                
+            {% endif %}
+            {% if order.order_number %}
+            <a href="{% url 'add_to_wallet' order.order_number %}" class="btn btn-primary btn-block">Wallet Payment</a>
+        {% endif %}
             <div id="paypal-button-container">
                 <!--paypal buton will load-->
             </div>
@@ -156,7 +169,7 @@ function getCookie(name) {
 
     // Assuming {{ grand_total }} is a placeholder for the grand total amount
     // Make sure it's properly rendered as a valid JavaScript number before this script
-    var amount = "{{ grand_total }}"
+    var amount = "{{ final_total }}"
     var url="{% url 'payments' %}"
     var csrftoken = getCookie('csrftoken');
     var orderID = "{{order.order_number}}"

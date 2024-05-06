@@ -1,6 +1,5 @@
 from django.shortcuts import render,redirect
 from django.contrib import messages
-from django.contrib.auth import logout
 from accounts.models import Account
 from category.models import Category
 from store.models import Product
@@ -11,6 +10,18 @@ import logging
 from django.shortcuts import render, redirect
 from .forms import CategoryForm
 from orders.models import Order,OrderProduct
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages, auth
+from orders.forms import CouponForm
+from orders.models import Coupon
+from django.utils.timezone import make_aware
+from datetime import datetime
+from django.http import HttpResponse
+from django.db.models import Sum,Q
+import csv
+from django.utils import timezone
+from django.utils import timezone as tz
+from datetime import datetime, timedelta
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)  # Set the logging level as per your requirement
@@ -20,7 +31,11 @@ logger = logging.getLogger(__name__)
 
 # Create your views here.
 def admin_view(request):
-     return render(request, 'customadmin/base.html')
+    if not request.user.is_authenticated or not request.user.is_superuser:
+        #Redirect to login page if user is not authenticated or not an admin
+        return redirect('login')
+
+    return render(request, 'customadmin/base.html')
                    
 def user_view(request):
     # Query all registered users
@@ -56,12 +71,21 @@ def Orders_view(request):
     # Query all registered users
     orders_list = Order.objects.all()
     
-
-
     # Prepare user data to pass to the template
-    context={'orders_list':orders_list}
+    context={
+        'orders_list':orders_list,
+        }
     
     return render(request,'customadmin/orders.html',context)
+
+def Coupon_view(request):
+    # Query all listed categories
+    coupon_list = Coupon.objects.all()
+
+    # Prepare user data to pass to the template
+    context={'coupon_list':coupon_list}
+    
+    return render(request,'customadmin/coupons.html',context)
 
 
 def Invoice(request,order_id):
@@ -76,8 +100,6 @@ def Invoice(request,order_id):
         'subtotal':subtotal,
     }
     return render(request,'customadmin/invoice.html',context)
-
-
 
 #add new category
 def add_category(request):
@@ -112,9 +134,11 @@ def add_product(request):
     return render(request, 'customadmin/add_product.html',context)
 
 #logout view
+@login_required(login_url='login')
 def logout_view(request):
-    logout(request)
-    return redirect('login')
+    auth.logout(request)
+    messages.success(request, "You are logged out.")
+    return redirect('index')
 
 # success page after add products
 def success_page(request):
@@ -216,7 +240,253 @@ def Order_cancel(request, order_id):
     # Redirect back to the orders page or any other appropriate URL
     return redirect('orders')
 
+def order_returnn(request,order_number):
+    # Retrieve the order based on the order number
+    order = get_object_or_404(Order, order_number=order_number)
+    
+    # Update order status to 'Cancelled' and set is_ordered to False
+    order.status = 'Returned'
+    order.is_ordered = False
+    order.save()
 
+    # Retrieve order items and update product stock
+    order_items = OrderProduct.objects.filter(order=order)
+    for order_item in order_items:
+        product = order_item.product
+        product.stock += order_item.quantity  # Increase product stock
+        product.save()
+    messages.success(request, "Order has been returned successfully.")
+    return redirect('my_orders')  # Redirect to a success page after cancellation
+
+
+# coupon logic is here
+def add_coupon(request):
+    if request.method == 'POST':
+        form = CouponForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request,'Coupon created successfully')
+            return redirect('coupons')
+            
+    else:
+        form = CouponForm()
+    
+    return render(request,'customadmin/add_coupon.html',{'form':form})
+
+def edit_coupon(request,coupon_id):
+    coupon = get_object_or_404(Coupon,id=coupon_id)
+    if request.method == 'POST':
+        form = CouponForm(request.POST, instance=coupon)
+        if form.is_valid():
+            form.save()
+            messages.success(request,'Coupon updated successfully')
+            return redirect('coupons')
+            
+    else:
+        form = CouponForm(instance=coupon)
+    
+    return render(request,'customadmin/edit_coupon.html',{'form':form,'coupon':coupon})
+
+def delete_coupon(request,coupon_id):
+    coupon = get_object_or_404(Coupon,id=coupon_id)
+    coupon.delete()
+    messages.success(request,'Coupon deleted successfully')
+    return redirect('coupon')
+
+
+# method to generate sales report
+def generate_sales_report_data(period, start_date=None, end_date=None):
+    today = timezone.now().date()
+    orders = Order.objects.none()
+
+    if period == 'daily':
+        start_date = today
+        end_date = today
+    elif period == 'weekly':
+        start_date = today - timedelta(days=today.weekday())
+        end_date = start_date + timedelta(days=6)
+    elif period == 'monthly':
+        start_date = today.replace(day=1)
+        end_date = (start_date + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+    elif period == 'custom' and start_date and end_date:
+        # Parse start_date and end_date if provided
+        start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+        end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+        # Check if start_date is before end_date
+ 
+
+    orders = Order.objects.filter(created_at__date__range=[start_date, end_date]).order_by('-created_at')
+
+
+
+    droporders = Order.objects.filter(    Q(status='Returned') | Q(status='Cancelled'),
+               created_at__date__range=[start_date, end_date] )
+
+
+    total_sales = orders.aggregate(total_sales=Sum('original_total_value'))['total_sales'] or 0
+    total_drop_sales = droporders.aggregate(total_drop_sales=Sum('discounted_total'))['total_drop_sales'] or 0
+    total_discount = orders.aggregate(total_discount=Sum('discounted_total'))['total_discount'] or 0
+    total_coupons = orders.aggregate(total_coupons=Sum('coupon_discount'))['total_coupons'] or 0
+    net_sales = total_sales - total_coupons-total_drop_sales
+
+    return {
+        'period': period,
+        'start_date': start_date,
+        'end_date': end_date,
+        'total_sales': total_sales,
+        'total_discount': total_discount,
+        'total_coupons': total_coupons,
+        'net_sales': net_sales,
+        'orders': orders,'total_drop_sales':total_drop_sales
+    }
+
+
+from django.http import HttpResponseBadRequest
+from django.shortcuts import render
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.http import HttpResponseBadRequest
+from django.shortcuts import render
+from django.shortcuts import render
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+
+
+def sales_report(request, period=None):
+    if request.method == 'POST':
+        period = request.POST.get('period')
+        start_date = request.POST.get('start_date')
+        end_date = request.POST.get('end_date')
+        try:
+            context = generate_sales_report_data(period, start_date, end_date)
+            sales_data = context.get('sales_data', [])
+        except ValueError as e:
+            return HttpResponseBadRequest(str(e))
+    else:
+        if period not in ['daily', 'weekly', 'monthly', 'yearly', 'custom']:
+            period = 'daily'
+        context = generate_sales_report_data(period)
+        sales_data = context.get('sales_data', [])
+   
+    return render(request, 'customadmin/sales_report.html', context)
+
+
+
+from django.template.loader import render_to_string
+
+from xhtml2pdf import pisa
+
+def render_sales_report_pdf(report_data):
+    html = render_to_string('sales_report_pdf.html', report_data)
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="sales_report.pdf"'
+    pisa.CreatePDF(html, dest=response)
+    return response
+
+def render_sales_report_excel(report_data):
+    response = HttpResponse(content_type='application/ms-excel')
+    response['Content-Disposition'] = 'attachment; filename="sales_report.xls"'
+
+    writer = csv.writer(response)
+    writer.writerow(['Order ID', 'Customer', 'Total Value', 'Discount', 'Net Value', 'Created At'])
+    for order in report_data['orders']:
+        writer.writerow([
+            order.id,
+            order.user.get_full_name(),
+            order.original_total_value,
+            order.discounted_total,
+     
+            order.created_at
+        ])
+
+    return response
+
+    
+from django.shortcuts import redirect
+from django.shortcuts import redirect
+from django.http import HttpResponseRedirect
+from django.http import HttpResponseBadRequest
+
+def download_sales_report_pdf(request, period=None):
+    if request.method == 'POST':
+        period = request.POST.get('period')
+        start_date = request.POST.get('start_date')
+        end_date = request.POST.get('end_date')
+    else:
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+
+    # Validate if both start_date and end_date are provided
+    if period == 'custom' and (not start_date or not end_date):
+        return HttpResponseBadRequest('Missing start_date or end_date parameters for custom period')
+
+    # Generate report data based on the period and dates
+    report_data = generate_sales_report_data(period, start_date, end_date)
+    
+    # Debug print statements for start_date and end_date
+    print("Start Date:", start_date)
+    print("End Date:", end_date)
+
+    # Check if period parameter is missing in report_data
+    if not report_data.get('period'):
+        return HttpResponseBadRequest('Missing period parameter in report data')
+
+    # Render the PDF report using the generated data
+    return render_sales_report_pdf(report_data)
+
+
+def sales_report_excel(request, period=None):
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    report_data = generate_sales_report_data(period, start_date, end_date)
+    return render_sales_report_excel(report_data)
+
+
+"""def sales_report(request):
+    date_range = request.GET.get('date_range')
+    start_date_str = request.GET.get('start_date')
+    end_date_str = request.GET.get('end_date')
+
+    if date_range == 'custom' and start_date_str and end_date_str:
+        start_date = make_aware(datetime.strptime(start_date_str, '%Y-%m-%d'))
+        end_date = make_aware(datetime.strptime(end_date_str, '%Y-%m-%d'))
+        orders = Order.objects.filter(created_at__range=(start_date, end_date)).prefetch_related('orderproduct_set')
+    else:
+        orders = Order.objects.all().prefetch_related('orderproduct_set')
+        
+        
+
+    total_revenue = sum(order.order_total for order in orders)
+    total_orders = orders.count()
+    
+    average_order_value = total_revenue / total_orders if total_orders else 0
+
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="sales_report.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow(['Order Number','User','Order Date', 'Product', 'Quantity', 'Product Price', 'Order Total','Order Date'])
+
+    for order in orders:
+        for order_product in order.orderproduct_set.all():
+            writer.writerow([
+                order.order_number,
+                order.created_at.strftime('%y-%m-%d %H:%M:%S'), 
+                order_product.product.product_name,
+                order_product.quantity,
+                order_product.product_price,
+                order.order_total,
+                order.user.username if order.user else 'Guest',
+                ])
+
+    context = {
+        'total_revenue': total_revenue,
+        'total_orders': total_orders,
+        'average_order_value': average_order_value,
+       
+        'start_date': start_date_str,
+        'end_date': end_date_str,
+    }
+    
+    return render(request,'customadmin/sales_report.html',context)"""
 
 
 

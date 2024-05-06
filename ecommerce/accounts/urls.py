@@ -16,6 +16,7 @@ urlpatterns=[
     path('my_orders/',views.My_Orders,name='my_orders'),
     path('profile/',views.Profile,name='profile'),
     path('edit_profile/',views.Edit_profile,name='edit_profile'),
+    path('coupon_list/', views.coupon_list, name='coupon_list'),
 
     path('order_detail/<int:order_id>/',views.Order_detail,name='order_detail'),
     path('add_address/',views.AddAddress, name='add_address'),

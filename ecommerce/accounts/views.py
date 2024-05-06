@@ -14,11 +14,12 @@ from django.http import HttpResponse
 from .models import Account,UserProfile
 from carts.models import Cart,Cartitem
 from carts.views import _cart_id
-from orders.models import Order,OrderProduct
+from orders.models import Order,OrderProduct,Coupon
 import requests
 from django.shortcuts import get_object_or_404
 from .models import Address
 from .forms import AddressForm
+from django.contrib.auth import authenticate, login, logout
 
 def register(request):
     if request.method == 'POST':
@@ -115,6 +116,8 @@ def user_login(request):
                 # Handle the case where the cart does not exist
                 pass  # Ignoring the error as cart might not exist for all users
             if user.is_superuser:
+                # Admin user logged in, redirect to admin page
+                auth.login(request, user)
                 return redirect('admin_view')
             else:
                 auth.login(request, user)
@@ -227,12 +230,22 @@ def resetpassword(request):
     
 
 # show the order details of the current user
+@login_required
 def My_Orders(request):
     orders=Order.objects.filter(user=request.user,is_ordered=True).order_by('-created_at')
     context={
         'orders': orders,
     }
     return render(request,'accounts/my_orders.html',context)
+
+@login_required
+def coupon_list(request):
+    coupons=Coupon.objects.all()
+    context={
+        'coupons': coupons,
+    }
+    return render(request,'accounts/coupon_list.html',context)
+
 
 #edit the user profile details
 @login_required
@@ -273,13 +286,19 @@ def Edit_profile(request):
 def Order_detail(request,order_id):
     order_detail=OrderProduct.objects.filter(order__order_number=order_id)
     order=Order.objects.get(order_number=order_id)
+    coupon_discount = Order.coupon
+    
     subtotal=0
+    
     for i in order_detail:
         subtotal +=i.product_price * i.quantity
+
     context={
         'order_detail':order_detail,
         'order':order,
         'subtotal':subtotal,
+        'coupon_discount':coupon_discount,
+       
     }
     return render(request,'accounts/order_detail.html',context)
 

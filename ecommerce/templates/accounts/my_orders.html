@@ -41,6 +41,7 @@
                                     <td>{{order.created_at}}</td>
                                     <td>{{order.status}}</td>
                                     <td><a href="{% url 'cancel_order' order.order_number%}">Cancel</a></td>
+                                    <td><a href="{% url 'order_return' order.order_number%}">Return</a></td>
                                     
                               </tr>
                               {% endfor %}

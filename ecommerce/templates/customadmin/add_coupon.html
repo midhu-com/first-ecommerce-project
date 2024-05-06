@@ -1,0 +1,28 @@
+{% extends 'customadmin/base.html' %}
+{% block title %}Add Coupon{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col">
+            <h1>Create Coupon</h1>
+            <form method="post">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <!-- Add date and time selector fields -->
+                <div class="form-group">
+                    <label for="id_valid_from">Valid From:</label>
+                    <input type="datetime-local" id="id_valid_from" name="valid_from" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="id_valid_until">Valid to:</label>
+                    <input type="datetime-local" id="id_valid_until" name="valid_to" class="form-control">
+                </div>
+                <!-- End of date and time selector fields -->
+            <button type="submit">Create Coupon</button>
+            </form>
+        </div>
+    </div>
+</div>  
+
+{% endblock %}
+
