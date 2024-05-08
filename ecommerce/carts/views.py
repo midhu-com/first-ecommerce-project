@@ -240,11 +240,17 @@ def Wishlist(request):
             wishlist_item = get_object_or_404(wishlist, id=wishlist_item_id)
             wishlist_item.delete()
             return redirect('wishlist')
+    wishlist_count = 0
+    if request.user.is_authenticated:
+        wishlist_count = wishlist.objects.filter(user=request.user).count()
+    else:
+        wishlist_count = 0
 
     wishlist_items = wishlist.objects.filter(user=request.user)
     
     context = {
         'wishlist_items': wishlist_items,
+        'wishlist_count':wishlist_count,
     }
     return render(request, 'store/wishlist.html',context)
 

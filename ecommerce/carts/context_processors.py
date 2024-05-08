@@ -23,8 +23,10 @@ def counter(request):
     return dict(cart_count= cart_count) # Return the dictionary
 
 def wishlist_count(request):
+   
     wishlist_items=[]
     # check if the user is authenticated before accessing their wishllist items
     if request.user.is_authenticated:
         wishlist_items=wishlist.objects.filter(user=request.user)
-    return {'wishlist_count':len(wishlist_items)}
+   
+    return dict(wishlist_count=wishlist_items)

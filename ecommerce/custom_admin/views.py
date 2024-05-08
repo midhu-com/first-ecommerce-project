@@ -17,11 +17,14 @@ from orders.models import Coupon
 from django.utils.timezone import make_aware
 from datetime import datetime
 from django.http import HttpResponse
-from django.db.models import Sum,Q
+from django.db.models import Sum,Q,Count
 import csv
 from django.utils import timezone
 from django.utils import timezone as tz
 from datetime import datetime, timedelta
+from django.template.loader import render_to_string
+from xhtml2pdf import pisa
+from django.http import HttpResponseBadRequest
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)  # Set the logging level as per your requirement
@@ -323,10 +326,11 @@ def generate_sales_report_data(period, start_date=None, end_date=None):
                created_at__date__range=[start_date, end_date] )
 
 
-    total_sales = orders.aggregate(total_sales=Sum('original_total_value'))['total_sales'] or 0
-    total_drop_sales = droporders.aggregate(total_drop_sales=Sum('discounted_total'))['total_drop_sales'] or 0
-    total_discount = orders.aggregate(total_discount=Sum('discounted_total'))['total_discount'] or 0
-    total_coupons = orders.aggregate(total_coupons=Sum('coupon_discount'))['total_coupons'] or 0
+    total_sales = orders.aggregate(total_sales=Sum('final_total'))['total_sales'] or 0
+    total_drop_sales = droporders.aggregate(total_drop_sales=Sum('final_total'))['total_drop_sales'] or 0
+    #total_discount = orders.aggregate(total_discount=Sum('discount_value'))['total_discount'] or 0
+    total_sales_count = orders.aggregate(total_sales_count=Count('id'))['total_sales_count'] or 0
+    total_coupons = orders.aggregate(total_coupons=Count('coupon'))['total_coupons'] or 0
     net_sales = total_sales - total_coupons-total_drop_sales
 
     return {
@@ -334,20 +338,15 @@ def generate_sales_report_data(period, start_date=None, end_date=None):
         'start_date': start_date,
         'end_date': end_date,
         'total_sales': total_sales,
-        'total_discount': total_discount,
+        #'total_discount': total_discount,
+         'total_sales_count': total_sales_count,
         'total_coupons': total_coupons,
         'net_sales': net_sales,
         'orders': orders,'total_drop_sales':total_drop_sales
     }
 
 
-from django.http import HttpResponseBadRequest
-from django.shortcuts import render
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.http import HttpResponseBadRequest
-from django.shortcuts import render
-from django.shortcuts import render
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+
 
 
 def sales_report(request, period=None):
@@ -370,9 +369,7 @@ def sales_report(request, period=None):
 
 
 
-from django.template.loader import render_to_string
 
-from xhtml2pdf import pisa
 
 def render_sales_report_pdf(report_data):
     html = render_to_string('sales_report_pdf.html', report_data)
@@ -390,7 +387,7 @@ def render_sales_report_excel(report_data):
     for order in report_data['orders']:
         writer.writerow([
             order.id,
-            order.user.get_full_name(),
+            order.user.get_username(),
             order.original_total_value,
             order.discounted_total,
      
@@ -400,10 +397,7 @@ def render_sales_report_excel(report_data):
     return response
 
     
-from django.shortcuts import redirect
-from django.shortcuts import redirect
-from django.http import HttpResponseRedirect
-from django.http import HttpResponseBadRequest
+
 
 def download_sales_report_pdf(request, period=None):
     if request.method == 'POST':
@@ -440,53 +434,6 @@ def sales_report_excel(request, period=None):
     return render_sales_report_excel(report_data)
 
 
-"""def sales_report(request):
-    date_range = request.GET.get('date_range')
-    start_date_str = request.GET.get('start_date')
-    end_date_str = request.GET.get('end_date')
-
-    if date_range == 'custom' and start_date_str and end_date_str:
-        start_date = make_aware(datetime.strptime(start_date_str, '%Y-%m-%d'))
-        end_date = make_aware(datetime.strptime(end_date_str, '%Y-%m-%d'))
-        orders = Order.objects.filter(created_at__range=(start_date, end_date)).prefetch_related('orderproduct_set')
-    else:
-        orders = Order.objects.all().prefetch_related('orderproduct_set')
-        
-        
-
-    total_revenue = sum(order.order_total for order in orders)
-    total_orders = orders.count()
-    
-    average_order_value = total_revenue / total_orders if total_orders else 0
-
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="sales_report.csv"'
-
-    writer = csv.writer(response)
-    writer.writerow(['Order Number','User','Order Date', 'Product', 'Quantity', 'Product Price', 'Order Total','Order Date'])
-
-    for order in orders:
-        for order_product in order.orderproduct_set.all():
-            writer.writerow([
-                order.order_number,
-                order.created_at.strftime('%y-%m-%d %H:%M:%S'), 
-                order_product.product.product_name,
-                order_product.quantity,
-                order_product.product_price,
-                order.order_total,
-                order.user.username if order.user else 'Guest',
-                ])
-
-    context = {
-        'total_revenue': total_revenue,
-        'total_orders': total_orders,
-        'average_order_value': average_order_value,
-       
-        'start_date': start_date_str,
-        'end_date': end_date_str,
-    }
-    
-    return render(request,'customadmin/sales_report.html',context)"""
 
 
 

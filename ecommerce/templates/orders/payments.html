@@ -130,8 +130,9 @@
                 
             {% endif %}
             {% if order.order_number %}
-            <a href="{% url 'add_to_wallet' order.order_number %}" class="btn btn-primary btn-block">Wallet Payment</a>
-        {% endif %}
+			    <a href="{% url 'add_to_wallet' order.order_number %}" class="btn btn-primary btn-block">Wallet Payment</a>
+            {% endif %}
+        
             <div id="paypal-button-container">
                 <!--paypal buton will load-->
             </div>

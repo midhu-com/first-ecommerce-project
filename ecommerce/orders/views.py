@@ -59,9 +59,9 @@ def Payments(request):
         orderproduct.save()
 
         # reduce the quantity from stock when place an order
-        #product=Product.objects.get(id=item.product_id)
-        #product.stock -=item.quantity
-        #product.save()
+        product=Product.objects.get(id=item.product_id)
+        product.stock -=item.quantity
+        product.save()
 
     #clear the cart items
     Cartitem.objects.filter(user=request.user).delete()
@@ -174,6 +174,7 @@ def Place_order(request, total=0, quantity=0):
                 country=selected_address.country,
                 coupon=coupon_code,
                 order_total=grand_total,
+                discount_value=discount_value,
                 final_total=final_total,  # Assign the Decimal value
                 tax=tax,
                 ip=request.META.get('REMOTE_ADDR'),
@@ -191,10 +192,10 @@ def Place_order(request, total=0, quantity=0):
             order.save()
 
             # Update product stock after successful order
-            for cart_item in cart_items:
-                product = cart_item.product
-                product.stock -= cart_item.quantity
-                product.save()
+            #for cart_item in cart_items:
+                #product = cart_item.product
+                #product.stock -= cart_item.quantity
+                #product.save()
 
             order = Order.objects.get(user=current_user, is_ordered=False, order_number=order_number)
 
@@ -230,10 +231,10 @@ def Cash_on_delivery(request, order_number):
     
 
     # Update product stock after successful order
-    #for cart_item in cart_items:
-        #product = cart_item.product
-        #product.stock -= cart_item.quantity
-        #product.save()
+    for cart_item in cart_items:
+        product = cart_item.product
+        product.stock -= cart_item.quantity
+        product.save()
 
     # Update the order status to indicate payment confirmation
     order.is_ordered = True
@@ -327,7 +328,7 @@ def cancell_order(request,order_number):
         wallet.balance += final_total
     wallet.save()
 
-    messages.success(request, "Order has been cancelled successfully.")
+    messages.success(request, "Order has been cancelled successfully.The paid amount is added to your wallet")
     return redirect('my_orders')
 
 def order_return(request,order_number):
@@ -358,7 +359,7 @@ def order_return(request,order_number):
         wallet.balance += final_total
     wallet.save()
 
-    messages.success(request, "Order has been returned successfully.")
+    messages.success(request, "Order has been returned successfully.The paid amount is added to your wallet.")
     return redirect('my_orders')  # Redirect to a success page after cancellation
 
 
@@ -387,12 +388,13 @@ def add_to_wallet(request, order_number):
         final_total = order.final_total
 
         if wallet.balance < final_total:
-            messages.error(request, "Insufficient balance in your wallet")
+            messages.error(request, "Insufficient balance in your wallet!")
             return redirect('cart')
 
         # Reduce the final total amount from the wallet balance
         wallet.balance -= final_total
         wallet.save()
+       
 
         # Update the order status to completed
         order.status = 'completed'
@@ -415,6 +417,12 @@ def add_to_wallet(request, order_number):
 
         # Delete all the current user's cart items
         Cartitem.objects.filter(user=request.user).delete()
+
+        # Update product stock after successful order
+        for cart_item in cart_items:
+            product = cart_item.product
+            product.stock -= cart_item.quantity
+            product.save()
 
         # Redirect to order confirmation page with order details
         messages.success(request, "Order placed successfully. Amount deducted from your wallet")

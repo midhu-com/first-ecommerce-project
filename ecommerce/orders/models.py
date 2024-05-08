@@ -50,6 +50,7 @@ class Order(models.Model):
     original_total_value = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     discounted_total = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     coupon_discount  = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    discount_value = models.DecimalField(max_digits=15, decimal_places=2, default=0)
 
     def full_name(self):
         return f'{self.first_name} {self.last_name}'
