@@ -1,4 +1,4 @@
-{% extends 'customadmin/base.html' %}
+{% extends 'customadmin/customhome.html' %}
 
 {% block content %}
 <div class="container">
@@ -33,7 +33,7 @@
     </div>
   </div>
   <div class="row">
-    <div class="col-12 col-md-4 mb-4">
+    <div class="col-12 col-md-6 mb-4">
       <div class="card shadow-sm">
         <div class="card-body">
           <h5 class="card-title text-primary">Period</h5>
@@ -41,7 +41,7 @@
         </div>
       </div>
     </div>
-    <div class="col-12 col-md-4 mb-4">
+    <div class="col-12 col-md-6 mb-4">
       <div class="card shadow-sm">
         <div class="card-body">
           <h5 class="card-title text-primary">Date Range</h5>
@@ -51,15 +51,15 @@
     </div>
   </div>
   <div class="row">
-    <div class="col-12 col-md-3 mb-4">
+    <div class="col-12 col-md-4 mb-4">
       <div class="card shadow-sm">
         <div class="card-body">
           <h5 class="card-title text-primary">Total Sales Amount</h5>
-          <p class="card-text">{{ total_sales }}</p>
+          <p class="card-text">{{ total_sales| floatformat:2}}</p>
         </div>
       </div>
     </div>
-    <div class="col-12 col-md-3 mb-4">
+    <div class="col-12 col-md-4 mb-4">
       <div class="card shadow-sm">
         <div class="card-body">
           <h5 class="card-title text-primary">Total Sales Count</h5>
@@ -67,7 +67,7 @@
         </div>
       </div>
     </div>
-    <div class="col-12 col-md-3 mb-4">
+    <div class="col-12 col-md-4 mb-4">
       <div class="card shadow-sm">
         <div class="card-body">
           <h5 class="card-title text-primary">Total Coupons</h5>
@@ -75,9 +75,19 @@
         </div>
       </div>
     </div>
+  </div>
+  <div class="row">
+    <div class="col-12 col-md-4 mb-4">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title text-primary">Total Coupon Discounts</h5>
+          <p class="card-text">{{ coupon_discount}}</p>
+        </div>
+      </div>
+    </div>
   <br>
 
-  <div class="col-12 col-md-3 mb-4">
+  <div class="col-12 col-md-4 mb-4">
     <div class="card shadow-sm">
       <div class="card-body">
         <h5 class="card-title text-primary">Total drop sales</h5>
@@ -85,13 +95,13 @@
       </div>
     </div>
   </div>
-</div>
 
-<div class="col-12 col-md-3 mb-4">
+
+<div class="col-12 col-md-4 mb-4">
   <div class="card shadow-sm">
     <div class="card-body">
       <h5 class="card-title text-primary">Net sales</h5>
-      <p class="card-text">{{ net_sales }}</p>
+      <p class="card-text">{{ net_sales| floatformat:2 }}</p>
     </div>
   </div>
 </div>
@@ -106,11 +116,11 @@
         <table class="table table-striped">
           <thead>
             <tr>
-              <th>Order ID</th>
+              <th>Order Number</th>
               <th>Customer</th>
               <th>Total Value</th>
               <th>Discounted Total</th>
-              <th>Coupon</th>
+              <th>Coupon Discounts</th>
               <th>Status</th>
 
               <th>Created At</th>
@@ -119,7 +129,7 @@
           <tbody>
             {% for order in orders %}
             <tr>
-              <td>{{ order.id }}</td>
+              <td>{{ order.order_number }}</td>
               <td>{{ order.first_name }}</td>
               <td>{{ order.order_total}}</td>
               <td>{{ order.final_total }}</td>

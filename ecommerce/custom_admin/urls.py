@@ -21,9 +21,14 @@ urlpatterns=[
     path('edit_category<int:category_id>/', views.edit_category, name='edit_category'),
 
     path('orders/',views.Orders_view,name='orders'),
-    path('order_cancel/<int:order_id>/',views.Order_cancel,name='order_cancel'),
-    path('order_return/<int:order_id>/',views.order_returnn,name='order_return'),
     path('invoice/<int:order_id>/',views.Invoice,name='invoice'),
+
+    path('admin_change_order_status/<int:order_number>/', views.admin_change_order_status, name='admin_change_order_status'),
+    path('admin_cancel_order/<int:order_number>/', views.admin_cancel_order, name='admin_cancel_order'),
+    path('admin_ship_order/<int:order_number>/', views.admin_ship_order, name='admin_ship_order'),
+    path('admin_deliver_order/<int:order_number>/', views.admin_deliver_order, name='admin_deliver_order'),
+
+
 
     path('coupons/',views.Coupon_view,name='coupons'),
     path('add_coupon/',views.add_coupon,name='add_coupon'),
@@ -45,6 +50,21 @@ urlpatterns=[
     # ... other URL patterns
 
     path('sales-report/excel/<str:period>/', views.sales_report_excel, name='sales_report_excel'),
+
+
+
+    path('product-offer/create/', views.product_offer_create, name='product_offer_create'),
+    path('product-offer/<int:pk>/edit/', views.product_offer_edit, name='product_offer_edit'),
+    path('product-offer/<int:pk>/delete/', views.product_offer_delete, name='product_offer_delete'),
+    path('product-offers_list/', views.list_product_offers, name='product_offers_list'),
+    path('offers/', views.offers, name='offers'),
+
+    # Category Offer URLs
+    path('category-offer/create/', views.category_offer_create, name='category_offer_create'),
+    path('category-offer/<int:pk>/edit/', views.category_offer_edit, name='category_offer_edit'),
+    path('category-offer/<int:pk>/delete/', views.category_offer_delete, name='category_offer_delete'),
+    path('category-offers_list/', views.list_category_offers, name='category_offers_list'),
+
 
     
 

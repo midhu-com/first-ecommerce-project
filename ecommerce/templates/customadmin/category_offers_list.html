@@ -1,0 +1,59 @@
+
+<!-- category_offer_list.html -->
+{% extends 'customadmin/customhome.html' %}
+
+{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>List Category Offers</title>
+    <!-- Include Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        /* Custom CSS styles */
+        .offer-list {
+            list-style: none;
+            padding: 0;
+        }
+        .offer-item {
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .offer-item a {
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>List Category Offers</h1>
+        <a href="{% url 'category_offer_create' %}" class="btn btn-primary mb-3">Create New Offer</a>
+        <ul class="offer-list">
+            {% for offer in category_offers %}
+                <li class="offer-item">
+                    <strong>{{ offer.category }}</strong>
+                    <strong>{{ offer.name }}</strong> - {{ offer.discount_percentage }}% Discount
+           
+
+
+                    <div>
+                        <a href="{% url 'category_offer_edit' offer.id %}" class="btn btn-sm btn-info">Edit</a>
+                        <a href="{% url 'category_offer_delete' offer.id %}" class="btn btn-sm btn-danger">Delete</a>
+                    </div>
+                </li>
+            {% empty %}
+                <li>No category offers available.</li>
+            {% endfor %}
+        </ul>
+    </div>
+    <!-- Include Bootstrap JS -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
+{% endblock content %}

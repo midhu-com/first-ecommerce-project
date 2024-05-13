@@ -1,28 +1,47 @@
-{% extends 'customadmin/base.html' %}
+{% extends 'customadmin/customhome.html' %}
 {% block title %}Add Coupon{% endblock %}
 {% block content %}
-<div class="container">
-    <div class="row">
-        <div class="col">
-            <h1>Create Coupon</h1>
-            <form method="post">
-                {% csrf_token %}
-                {{ form.as_p }}
-                <!-- Add date and time selector fields -->
-                <div class="form-group">
-                    <label for="id_valid_from">Valid From:</label>
-                    <input type="datetime-local" id="id_valid_from" name="valid_from" class="form-control">
-                </div>
-                <div class="form-group">
-                    <label for="id_valid_until">Valid to:</label>
-                    <input type="datetime-local" id="id_valid_until" name="valid_to" class="form-control">
-                </div>
-                <!-- End of date and time selector fields -->
-            <button type="submit">Create Coupon</button>
-            </form>
+{% include 'alert.html' %}
+
+<div class="container mt-4">
+  <div class="row">
+    <div class="col-md-6">
+      <h2>Create Coupon</h2>
+      <form method="post" action="{% url 'add_coupon' %}">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label for="id_code" class="form-label">Coupon Code:</label>
+          {{ form.code }}
+          {% if form.code.errors %}
+          <small class="text-danger">{{ form.code.errors }}</small>
+          {% endif %}
         </div>
+        <div class="mb-3">
+          <label for="id_discount" class="form-label">Discount Amount:</label>
+          {{ form.discount }}
+          {% if form.discount.errors %}
+          <small class="text-danger">{{ form.discount.errors }}</small>
+          {% endif %}
+        </div>
+        <div class="mb-3">
+          <label for="id_valid_from" class="form-label">Valid From:</label>
+          {{ form.valid_from }}
+          {% if form.valid_from.errors %}
+          <small class="text-danger">{{ form.valid_from.errors|join:", " }}</small>
+          {% endif %}
+        </div>
+        <div class="mb-3">
+          <label for="id_valid_to" class="form-label">Valid To:</label>
+          {{ form.valid_to }}
+          {% if form.valid_to.errors %}
+          <small class="text-danger">{{ form.valid_to.errors|join:", "  }}</small>
+          {% endif %}
+        </div>
+        <button type="submit" class="btn btn-primary">Create Coupon</button>
+      </form>
+      <br>
+      <a href="{% url 'coupons' %}" class="btn btn-secondary">Back to Coupon List</a>
     </div>
-</div>  
-
+  </div>
+</div>
 {% endblock %}
-

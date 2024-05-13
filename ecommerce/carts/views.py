@@ -8,6 +8,9 @@ from store.models import Variation
 from django.db.models import F
 from django.contrib.auth.decorators import login_required
 from accounts.models import Address,UserProfile
+from django.contrib import messages
+from orders.models import Coupon,Order
+from django.utils import timezone
 
 # Create your views here.
 
@@ -62,11 +65,12 @@ def add_cart(request, product_id):
                 stock_limit_exceeded = True
 
         if stock_limit_exceeded:
-            return HttpResponseBadRequest("Sorry, the stock limit for this product has been exceeded.")
+            messages.error(request,"Sorry, the stock limit for this product has been exceeded.")
+            
 
 
-         # If stock limit is not exceeded, proceed with adding the product to the cart
-        if existing_cart_item:
+        # If stock limit is not exceeded, proceed with adding the product to the cart
+        elif existing_cart_item:
             # If an existing cart item with the same variations is found, increase its quantity
             existing_cart_item.quantity += 1
             existing_cart_item.save()
@@ -232,8 +236,11 @@ def checkout(request,total=0,quantity=0,cart_items=None):
     }
     return render(request,'store/checkout.html',context)
 
+
+
+
 @login_required(login_url='login')
-def Wishlist(request):
+def Wishlist(request):  
     if request.method == 'POST':
         wishlist_item_id = request.POST.get('wishlist_item_id')
         if wishlist_item_id:

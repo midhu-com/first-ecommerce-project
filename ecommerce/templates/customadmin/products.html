@@ -1,4 +1,4 @@
-{% extends 'customadmin/base.html'%}
+{% extends 'customadmin/customhome.html'%}
 {% block title %}Products{% endblock %}
 
 {% block content %}
@@ -14,6 +14,7 @@
                         <th scope="col">Description</th>
                         <th scope="col">Price</th>
                         <th scope="col">Stock</th>
+                        <th scope="col">Image</th>
                         <th scope="col">is_available</th>
                         <th scope="col">Actions</th>
                     </tr>
@@ -30,6 +31,7 @@
                             {% else %}
                                 Out of stock
                             {% endif %}</td>
+                            <td><img src="{{product.product_images.first.image.url  }}" alt="{{  product.product_name  }}" style="max-width: 100px; max-height: 100px;"></td>
                             <td>{{ product.is_available }}</td>
 
                             

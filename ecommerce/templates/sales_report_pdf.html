@@ -28,29 +28,31 @@
     <p>Period: {{ period }}</p>
     <p>Start Date: {{ start_date }}</p>
     <p>End Date: {{ end_date }}</p>
-    <p>Total Sales: {{ total_sales }}</p>
+    <p>Total Sales Value: {{ total_sales }}</p>
     
     <p>Total Coupons: {{ total_coupons }}</p>
 
     <table>
         <thead>
             <tr>
-                <th>Order ID</th>
+                <th>Order Number</th>
                 <th>Customer</th>
                 <th>Total Value</th>
+                <th>Coupon Discount</th>
+                <th>Total Discounted Sales Value</th>
+                <th>Created At</th> 
                 
-                <th>Coupon</th>
-                <th>Created At</th>
             </tr>
         </thead>
         <tbody>
             {% for order in orders %}
             <tr>
-                <td>{{ order.id }}</td>
+                <td>{{ order.order_number }}</td>
                 <td>{{ order.first_name }}</td>
                 <td>{{ order.order_total }}</td>
-                <td>{{ order.final_total }}</td>
                 <td>{{ order.discount_value }}</td>
+                <td>{{ order.final_total }}</td>
+               
 
                 <td>{{ order.created_at }}</td>
             </tr>

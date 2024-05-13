@@ -17,7 +17,7 @@
 </div>
 <!-- Breadcrumb End -->
 <section class="section-content padding-y bg">
-    
+    {% include 'alert.html'%}
     <div class="container">
         {% if not cart_items %}
         <h2 class="text-center">Your Shopping Cart is Empty </h2>
@@ -26,6 +26,7 @@
             <a href="{% url 'store' %}" class="btn btn-primary">Continue Shopping</a>
         </div>
         {% else %}
+		
         <div class="row">    
             <aside class="col-lg-9">
                 <div class="card">
@@ -75,6 +76,7 @@
                                                 </form>
                                             </div>
                                         </div> <!-- input-group.// -->
+										
                                     </div> <!-- col.// -->
                                 </td>
                                 <td> 
@@ -127,19 +129,6 @@
 </section>
 <!-- ========================= SECTION CONTENT END// ========================= -->
 
-<script>
-    var quantityInputs = document.querySelectorAll('.quantity-input');
-    quantityInputs.forEach(function(input) {
-        input.addEventListener('change', function() {
-            var quantity = parseInt(this.value);
-            var productId = this.dataset.productId;
-            var stock = parseInt('{{ cart_items|get_item:productId|get_product_stock }}');
-            if (quantity > stock) {
-                alert('Sorry, you cannot add more than the available stock.');
-                this.value = stock; // Resetting quantity to stock value
-            }
-        });
-    });
-</script>
+
 
 {% endblock %}

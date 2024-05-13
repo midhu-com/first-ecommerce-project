@@ -1,6 +1,7 @@
-{% extends 'customadmin/base.html' %}
+{% extends 'customadmin/customhome.html' %}
 
 {% block content %}
+{% include 'alert.html' %}
   <h2 class="mb-4">Edit Coupon - {{ coupon.code }}</h2>
   <div class="table-responsive">
     <form method="post" action="{% url 'edit_coupon' coupon.id %}">

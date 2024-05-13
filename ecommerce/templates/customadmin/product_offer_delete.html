@@ -1,0 +1,21 @@
+<!-- product_offer_delete.html -->
+{% extends 'customadmin/customhome.html' %}
+
+{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delete Product Offer</title>
+</head>
+<body>
+    <h1>Delete Product Offer</h1>
+    <p>Are you sure you want to delete "{{ offer }}"?</p>
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit">Delete</button>
+    </form>
+</body>
+</html>
+{% endblock content %}

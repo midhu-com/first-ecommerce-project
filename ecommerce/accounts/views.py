@@ -286,18 +286,37 @@ def Edit_profile(request):
 def Order_detail(request,order_id):
     order_detail=OrderProduct.objects.filter(order__order_number=order_id)
     order=Order.objects.get(order_number=order_id)
-    coupon_discount = Order.coupon
+   
     
     subtotal=0
     
     for i in order_detail:
         subtotal +=i.product_price * i.quantity
+        
+    # Fetching payment method from the related Payment object
+    payment_method = order.payment.payment_method if order.payment else None
+
+    # Retrieve coupon discount
+    coupon_discount = 0
+    if order.coupon:
+            try:
+                coupon = Coupon.objects.get(code=order.coupon)
+                # Check if the coupon is valid
+                if coupon.valid_from <= order.created_at <= coupon.valid_to:
+                    coupon_discount = coupon.discount
+            except Coupon.DoesNotExist:
+                pass
+
+
 
     context={
         'order_detail':order_detail,
         'order':order,
         'subtotal':subtotal,
         'coupon_discount':coupon_discount,
+        'payment': order.payment,
+        'payment_method': payment_method,
+
        
     }
     return render(request,'accounts/order_detail.html',context)

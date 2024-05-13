@@ -13,6 +13,9 @@ urlpatterns = [
     path('order_return/<int:order_number>/',views.order_return,name='order_return'),
 
     path('add_to_wallet/<int:order_number>/',views.add_to_wallet,name='add_to_wallet'),
+
+   
+    
    
    
     

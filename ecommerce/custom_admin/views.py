@@ -4,16 +4,17 @@ from accounts.models import Account
 from category.models import Category
 from store.models import Product
 from store.models import Image
-from .forms import ProductForm,ProductImageForm,CategoryForm
+from .forms import ProductForm,ProductImageForm,CategoryForm,CouponForm
 from django.shortcuts import get_object_or_404
 import logging
 from django.shortcuts import render, redirect
-from .forms import CategoryForm
+from .forms import CategoryForm,CouponForm,ProductOfferForm,CategoryOfferForm
 from orders.models import Order,OrderProduct
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages, auth
 from orders.forms import CouponForm
-from orders.models import Coupon
+from store.forms import ImageForm
+from orders.models import Coupon,CategoryOffers,ProductOffers
 from django.utils.timezone import make_aware
 from datetime import datetime
 from django.http import HttpResponse
@@ -25,6 +26,10 @@ from datetime import datetime, timedelta
 from django.template.loader import render_to_string
 from xhtml2pdf import pisa
 from django.http import HttpResponseBadRequest
+from django.views.decorators.cache import never_cache
+from django.forms import inlineformset_factory
+from django import forms    
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)  # Set the logging level as per your requirement
@@ -72,7 +77,7 @@ def category_view(request):
 
 def Orders_view(request):
     # Query all registered users
-    orders_list = Order.objects.all()
+    orders_list = Order.objects.all().order_by('-created_at')
     
     # Prepare user data to pass to the template
     context={
@@ -90,21 +95,50 @@ def Coupon_view(request):
     
     return render(request,'customadmin/coupons.html',context)
 
-
+@login_required(login_url='login')
 def Invoice(request,order_id):
+  
+
     order_detail=OrderProduct.objects.filter(order__order_number=order_id)
-    order=Order.objects.get(order_number=order_id)
+    order=get_object_or_404(Order, id=order_id)
+   
+    
     subtotal=0
+    
     for i in order_detail:
         subtotal +=i.product_price * i.quantity
+        
+    # Fetching payment method from the related Payment object
+    payment_method = order.payment.payment_method if order.payment else None
+
+    # Retrieve coupon discount
+    coupon_discount = 0
+    if order.coupon:
+            try:
+                coupon = Coupon.objects.get(code=order.coupon)
+                # Check if the coupon is valid
+                if coupon.valid_from <= order.created_at <= coupon.valid_to:
+                    coupon_discount = coupon.discount
+            except Coupon.DoesNotExist:
+                pass
+
+
+
     context={
         'order_detail':order_detail,
         'order':order,
         'subtotal':subtotal,
+        'coupon_discount':coupon_discount,
+        'payment': order.payment,
+        'payment_method': payment_method,
+
+       
     }
     return render(request,'customadmin/invoice.html',context)
 
+
 #add new category
+
 def add_category(request):
     if request.method == 'POST':
         form = CategoryForm(request.POST,request.FILES)
@@ -115,26 +149,6 @@ def add_category(request):
         form = CategoryForm()
     return render(request, 'customadmin/add_category.html', {'form': form})
 
-# add  new product details 
-def add_product(request):
-    productform=ProductForm()
-    imageform=ProductImageForm()
-
-    if request.method == 'POST':
-        files=request.FILES.getlist('images')
-        productform = ProductForm(request.POST,request.FILES)
-
-        if productform.is_valid():
-            product=productform.save(commit=False)
-            product.save()
-            print(request,"product created successfully")
-
-            for file in files:
-                Image.objects.create(product=product,image=file)
-            return redirect('products')  # Redirect to the product list page after successful submission
-            
-    context={"form":productform,"form_image":imageform}
-    return render(request, 'customadmin/add_product.html',context)
 
 #logout view
 @login_required(login_url='login')
@@ -165,6 +179,31 @@ def unblock_user(request, user_id):
         messages.error(request, f"{account.username} is already unblocked.")
     return redirect('admin_view')  # Redirect back to the custom admin page
 
+# add  new product details 
+def add_product(request):
+    productform=ProductForm()
+    imageform=ProductImageForm()
+
+    if request.method == 'POST':
+        files=request.FILES.getlist('images')
+        productform = ProductForm(request.POST,request.FILES)
+
+        if productform.is_valid():
+            product=productform.save(commit=False)
+            category_id = request.POST.get('Category')
+            category = Category.objects.get(pk=category_id)
+            product.Category = category
+            product.save()
+            print(request,"product created successfully")
+
+            for file in files:
+                Image.objects.create(product=product,image=file)
+            return redirect('products')  # Redirect to the product list page after successful submission
+            
+    context={"form":productform,"form_image":imageform}
+    return render(request, 'customadmin/add_product.html',context)
+
+
 # edit & delete product details
 
 
@@ -178,14 +217,19 @@ def delete_product(request,product_id):
     else:
         return redirect('products')
     
-
 def edit_product(request, product_id):
     product = get_object_or_404(Product, id=product_id)
+    ImageFormSet = inlineformset_factory(Product, Image, form=ImageForm, extra=3, can_delete=True)
+    
+    # Retrieve all categories
+    categories = Category.objects.all()
     
     if request.method == 'POST':
         form = ProductForm(request.POST, instance=product)
-        if form.is_valid():
+        #formset = ImageFormSet(request.POST, request.FILES, instance=product)
+        if form.is_valid(): #and formset.is_valid()
             form.save()
+            #formset.save()
             messages.success(request, 'Product edited successfully')
             return redirect('admin_view')  # Redirect after successful form submission
         else:
@@ -194,9 +238,19 @@ def edit_product(request, product_id):
             logger.error(form.errors)  # You need to define the logger variable
             messages.error(request, "Form contains errors. Please correct them.")
     else:
-        form = ProductForm(instance=product)  # Pass the product instance to pre-fill the form
+         # Pass the product instance and initial category to pre-fill the form
+        form = ProductForm(instance=product, initial={
+            'product_name': product.product_name,
+            'slug': product.slug,
+            'price': product.price,
+            'stock': product.stock,
+            'category': product.category.pk,  # Pass the primary key of the category
+            'description': product.description,
+            'is_available': product.is_available,
+        }) 
+        #formset = ImageFormSet(instance=product)
     
-    return render(request, 'customadmin/edit_product.html', {'form': form, 'product': product})
+    return render(request, 'customadmin/edit_product.html', {'form': form, 'product': product, """'formset': formset,""" 'categories': categories})
 
 
 #edit  & delete category details
@@ -225,76 +279,44 @@ def edit_category(request, category_id):
 
     return render(request, 'customadmin/edit_category.html', {'form': form, 'category': category})
 
-def Order_cancel(request, order_id):
-    # Get the order object from the database
-    order = get_object_or_404(Order, pk=order_id)
-    
-    # Check if the order belongs to the current user or if the user has permission to cancel orders
-    if request.user == order.user or request.user.has_perm('your_app.cancel_order'):
-        # Cancel the order (you may need to implement a method on your Order model to update the status)
-        order.status = 'Cancelled'
-        order.save()
-        # Optionally, you can add a message to indicate that the order has been canceled
-        messages.success(request, "Order has been canceled successfully.")
-    else:
-        # If the user does not have permission to cancel the order, display an error message
-        messages.error(request, "You do not have permission to cancel this order.")
-    
-    # Redirect back to the orders page or any other appropriate URL
-    return redirect('orders')
-
-def order_returnn(request,order_number):
-    # Retrieve the order based on the order number
-    order = get_object_or_404(Order, order_number=order_number)
-    
-    # Update order status to 'Cancelled' and set is_ordered to False
-    order.status = 'Returned'
-    order.is_ordered = False
-    order.save()
-
-    # Retrieve order items and update product stock
-    order_items = OrderProduct.objects.filter(order=order)
-    for order_item in order_items:
-        product = order_item.product
-        product.stock += order_item.quantity  # Increase product stock
-        product.save()
-    messages.success(request, "Order has been returned successfully.")
-    return redirect('my_orders')  # Redirect to a success page after cancellation
-
 
 # coupon logic is here
 def add_coupon(request):
     if request.method == 'POST':
         form = CouponForm(request.POST)
         if form.is_valid():
-            form.save()
+            coupon = form.save(commit=False)
+            coupon.save()
             messages.success(request,'Coupon created successfully')
             return redirect('coupons')
+        else:
+            messages.error(request, 'Failed to add coupon. Please correct the errors.')
             
     else:
         form = CouponForm()
     
     return render(request,'customadmin/add_coupon.html',{'form':form})
 
-def edit_coupon(request,coupon_id):
-    coupon = get_object_or_404(Coupon,id=coupon_id)
+def edit_coupon(request, coupon_id):
+    coupon = get_object_or_404(Coupon, id=coupon_id)
     if request.method == 'POST':
         form = CouponForm(request.POST, instance=coupon)
         if form.is_valid():
             form.save()
-            messages.success(request,'Coupon updated successfully')
+            messages.success(request, 'Coupon updated successfully.')
             return redirect('coupons')
-            
+        else:
+            messages.error(request, 'Failed to update coupon. Please enter valid date.')
     else:
         form = CouponForm(instance=coupon)
-    
-    return render(request,'customadmin/edit_coupon.html',{'form':form,'coupon':coupon})
+    return render(request, 'customadmin/edit_coupon.html', {'form': form, 'coupon': coupon})
+
 
 def delete_coupon(request,coupon_id):
     coupon = get_object_or_404(Coupon,id=coupon_id)
     coupon.delete()
     messages.success(request,'Coupon deleted successfully')
-    return redirect('coupon')
+    return redirect('coupons')
 
 
 # method to generate sales report
@@ -328,7 +350,7 @@ def generate_sales_report_data(period, start_date=None, end_date=None):
 
     total_sales = orders.aggregate(total_sales=Sum('final_total'))['total_sales'] or 0
     total_drop_sales = droporders.aggregate(total_drop_sales=Sum('final_total'))['total_drop_sales'] or 0
-    #total_discount = orders.aggregate(total_discount=Sum('discount_value'))['total_discount'] or 0
+    total_discount = orders.aggregate(total_discount=Sum('coupon_discount'))['total_discount'] or 0
     total_sales_count = orders.aggregate(total_sales_count=Count('id'))['total_sales_count'] or 0
     total_coupons = orders.aggregate(total_coupons=Count('coupon'))['total_coupons'] or 0
     net_sales = total_sales - total_coupons-total_drop_sales
@@ -338,8 +360,8 @@ def generate_sales_report_data(period, start_date=None, end_date=None):
         'start_date': start_date,
         'end_date': end_date,
         'total_sales': total_sales,
-        #'total_discount': total_discount,
-         'total_sales_count': total_sales_count,
+        'total_discount': total_discount,
+        'total_sales_count': total_sales_count,
         'total_coupons': total_coupons,
         'net_sales': net_sales,
         'orders': orders,'total_drop_sales':total_drop_sales
@@ -434,8 +456,129 @@ def sales_report_excel(request, period=None):
     return render_sales_report_excel(report_data)
 
 
+@never_cache
+@login_required(login_url='login')
+def admin_change_order_status(request, order_number):
+    order = get_object_or_404(Order, order_number=order_number)
+    new_status = request.POST.get('new_status')
+
+    if new_status in dict(Order.STATUS):
+        order.status = new_status
+        order.save()
+        messages.success(request, f"Order #{order.order_number} status updated to {new_status}")
+    else:
+        messages.error(request, "Invalid order status")
+
+    return redirect('orders')
+    
+
+@never_cache
+@login_required(login_url='login')
+def admin_cancel_order(request, order_number):
+    order = get_object_or_404(Order, order_number=order_number)
+
+    if order.cancel_order():
+        messages.success(request, f"Order #{order.order_number} has been canceled")
+    else:
+        messages.error(request, f"Unable to cancel order #{order.order_number}")
+
+    return redirect('orders')
 
 
+
+@never_cache
+@login_required(login_url='login')
+def admin_ship_order(request, order_number):
+    order = get_object_or_404(Order, order_number=order_number)
+
+    if order.ship_order():
+        messages.success(request, f"Order #{order.order_number} has been shipped")
+    else:
+        messages.error(request, f"Unable to ship order #{order.order_number}")
+
+    return redirect('admin_ship_order', order_number=order.order_number)
+
+@never_cache
+@login_required(login_url='login')
+def admin_deliver_order(request, order_number):
+    order = get_object_or_404(Order, order_number=order_number)
+
+    if order.deliver_order():
+        messages.success(request, f"Order #{order.order_number} has been delivered")
+    else:
+        messages.error(request, f"Unable to deliver order ship first #{order.order_number}")
+
+    return redirect('orders')
+
+
+# productoffer module create,edit  & delete
+def product_offer_create(request):
+    if request.method == 'POST':
+        form = ProductOfferForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('product_offers_list')  # Change 'admin_homepage' to the appropriate URL
+    else:
+        form = ProductOfferForm()
+    return render(request, 'customadmin/product_offer_create.html', {'form': form})
+
+def product_offer_edit(request, pk):
+    offer = get_object_or_404(ProductOffers, pk=pk)
+    if request.method == 'POST':
+        form = ProductOfferForm(request.POST, instance=offer)
+        if form.is_valid():
+            form.save()
+            return redirect('product_offers_list')  # Change 'admin_homepage' to the appropriate URL
+    else:
+        form = ProductOfferForm(instance=offer)
+    return render(request, 'customadmin/product_offer_edit.html', {'form': form})
+
+def product_offer_delete(request, pk):
+    offer = get_object_or_404(ProductOffers, pk=pk)
+    offer.delete()
+    return redirect('product_offers_list')  # Change 'admin_homepage' to the appropriate URL
+  
+
+def category_offer_create(request):
+    if request.method == 'POST':
+        form = CategoryOfferForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('category_offers_list')  # Change 'admin_homepage' to the appropriate URL
+    else:
+        form = CategoryOfferForm()
+    return render(request, 'customadmin/category_offer_create.html', {'form': form})
+
+def category_offer_edit(request, pk):
+    offer = get_object_or_404(CategoryOffers, pk=pk)
+    if request.method == 'POST':
+        form = CategoryOfferForm(request.POST, instance=offer)
+        if form.is_valid():
+            form.save()
+            return redirect('category_offers_list')  # Change 'admin_homepage' to the appropriate URL
+    else:
+        form = CategoryOfferForm(instance=offer)
+    return render(request, 'customadmin/category_offer_edit.html', {'form': form})
+
+def category_offer_delete(request, pk):
+    offer = get_object_or_404(CategoryOffers, pk=pk)
+    offer.delete()
+    return redirect('category_offers_list')  # Change 'admin_homepage' to the appropriate URL
+
+def list_product_offers(request):
+    # Retrieve all product offers from the database
+    product_offers = ProductOffers.objects.all()
+    return render(request, 'customadmin/product_offers_list.html', {'product_offers': product_offers})
+
+def list_category_offers(request):
+    # Retrieve all category offers from the database
+    category_offers = CategoryOffers.objects.all()
+    return render(request, 'customadmin/category_offers_list.html', {'category_offers': category_offers})
+
+
+def offers(request):
+
+    return render(request, 'customadmin/offers.html')
 
 
 

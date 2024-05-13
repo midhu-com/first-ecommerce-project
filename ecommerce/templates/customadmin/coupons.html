@@ -1,7 +1,8 @@
-{% extends 'customadmin/base.html' %}
+{% extends 'customadmin/customhome.html' %}
 {% block title %}Coupons{% endblock %}
 
 {% block content %}
+{% include 'alert.html' %}
 <div class="container mt-4">
     <div class="row">
         <div class="col">
@@ -17,6 +18,7 @@
                             <th scope="col">Discount</th>
                             <th scope="col">Valid_from</th>
                             <th scope="col">Valid_to</th>
+                            <th scope="col">Active status</th>
                             <th scope="col">Actions</th>
                         </tr>
                     </thead>
@@ -27,6 +29,7 @@
                             <td>{{ coupon.discount }}</td>
                             <td>{{ coupon.valid_from }}</td>
                             <td>{{ coupon.valid_to }}</td>
+                            <td>{{ coupon.active}}</td>
                             <td><a href="{% url 'edit_coupon' coupon.id %}" class="btn btn-primary btn-sm">Edit</a></td>
                             <td><a href="{% url 'delete_coupon' coupon.id %}" class="btn btn-primary btn-sm">Delete</a></td>
                             <td>

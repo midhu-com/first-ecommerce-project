@@ -15,7 +15,8 @@ class Product(models.Model):
     category=models.ForeignKey(Category,on_delete=models.CASCADE)
     created_date=models.DateTimeField(auto_now_add=True)
     modified_date=models.DateTimeField(auto_now=True)
-
+    discprice = models.DecimalField(max_digits=15, decimal_places=2,default=10)
+    #discount = models.IntegerField(verbose_name="Discount Percentage",blank=True)
 
 
     def get_url(self):

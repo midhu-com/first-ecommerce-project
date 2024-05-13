@@ -19,6 +19,8 @@
 </div>
 <!-- Breadcrumb End -->
 <section class="section-content padding-y bg">
+{% include 'alert.html' %}
+
     <div class="container">
         <form action="{% url 'place_order' %}" class="checkout__form" method="post">
         {% csrf_token %}
@@ -45,15 +47,22 @@
                             {% endif %}
                             <div class="mt-3 pt-5" style="display: inline-block;">
                                 <a href="{% url 'add_address' %}" class="btn btn-primary">Add Address</a>
+                                <a href="{% url 'profile' %}" class="btn btn-primary">Edit & Delete Address</a>
+
                             </div>
                         </form>
+                        <br><br>
                         <div class="mt-5">
                             <div class="form-group mt-3 ">
+                                <a href="{% url 'coupon_list' %}" class="btn btn-info">View Coupon Details</a>
+                                <br>
+                                <br>
                                 <label for="coupon_code">Enter Coupon Code:</label>
                                 <input type="text" class="form-control" id="coupon_code_input" name="coupon_code">
                             </div>
     
                         </div>
+                        
                     </div>
                 </div> <!-- card.// -->
             </aside> <!-- col.// -->
@@ -112,4 +121,5 @@
     </div> <!-- container .//  -->
 </section>
 <!-- ========================= SECTION CONTENT END// ========================= -->
+
 {% endblock %}

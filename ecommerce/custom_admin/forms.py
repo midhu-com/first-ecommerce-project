@@ -4,6 +4,9 @@ from django import forms
 from category.models import Category
 from store.models import Product,Image
 from accounts.models import Account
+from orders.models import ProductOffers,CategoryOffers,Coupon
+from category.models import Category
+from django.utils import timezone
 
 
 
@@ -44,6 +47,15 @@ class ProductForm(forms.ModelForm):
             
             
             }
+    def __init__(self, *args, **kwargs):
+        super(ProductForm, self).__init__(*args, **kwargs)
+        # Query the Category model to get all categories
+        self.fields['category'].queryset = Category.objects.all() 
+        # Set initial value for category if it exists
+        if 'instance' in kwargs:
+            instance = kwargs['instance']
+            if instance.category:
+                self.initial['category'] = instance.category.pk
 
 class ProductImageForm(forms.ModelForm)   :
     images=forms.FileField(widget=forms.TextInput(attrs={
@@ -57,4 +69,41 @@ class ProductImageForm(forms.ModelForm)   :
         model=Image
         fields=['images']
 
+
+class CouponForm(forms.ModelForm):
+    class Meta:
+        model = Coupon  
+        fields = '__all__'
+
+    def clean_valid_to(self):
+        valid_to = self.cleaned_data.get('valid_to')
+        if valid_to and valid_to > timezone.now().date():
+            raise forms.ValidationError("Valid to date cannot be in the past.")
+        return valid_to
+
+    def clean(self):
+        cleaned_data = super().clean()
+        valid_from = cleaned_data.get('valid_from')
+        valid_to = cleaned_data.get('valid_to')
+        if valid_from and valid_to:
+            if valid_to <= valid_from:
+                raise forms.ValidationError("Valid to date must be later than valid from date.")
+        return cleaned_data
+
+   
+
+class ProductOfferForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super(ProductOfferForm, self).__init__(*args, **kwargs)
+        # Filter products to include only active ones
+        self.fields['product'].queryset = Product.objects.filter(is_available=True)
+
+    class Meta:
+        model = ProductOffers
+        fields = '__all__'  # You can customize the fields as needed
+
+class CategoryOfferForm(forms.ModelForm):
+    class Meta:
+        model = CategoryOffers
+        fields = '__all__'  # You can customize the fields as needed
    

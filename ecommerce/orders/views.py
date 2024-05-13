@@ -19,6 +19,7 @@ from django.utils import timezone
 from datetime import datetime
 from decimal import Decimal
 from django.core.exceptions import ObjectDoesNotExist
+from django.contrib import messages
 
 def Payments(request):
     body = json.loads(request.body)
@@ -30,7 +31,7 @@ def Payments(request):
         payment_id = body['transID'],
         payment_method = body['payment_method'],
         amount_paid = order.order_total,
-        status=body['status'],
+        payment_status=body['status'],
     )
     payment.save()
     
@@ -149,72 +150,76 @@ def Place_order(request, total=0, quantity=0):
                     current_datetime = timezone.now()
                     if coupon.valid_from <= current_datetime <= coupon.valid_to:
                         discount_value = coupon.discount
+                        print("Discount value:",discount_value)
                         final_total = Decimal(str(grand_total)) - discount_value
                         # Ensure final_total is not negative
                         final_total = max(0, final_total)
+                       
                     else:
                         discount_value = 0
+                        final_total = grand_total
+                        messages.warning(request,"Coupon is invalid")
+                        return redirect('checkout')
                 except Coupon.DoesNotExist:
                     discount_value = 0
                     final_total = grand_total
-                    pass
+                    messages.error(request,"Coupon Does Not Exist")
+                    return redirect('checkout')
 
-        if selected_address_id:
-            selected_address = get_object_or_404(Address, id=selected_address_id)
+            if selected_address_id:
+                selected_address = get_object_or_404(Address, id=selected_address_id)
 
-            order = Order.objects.create(
-                user=current_user,
-                first_name=current_user.first_name,
-                last_name=current_user.last_name,
-                email=current_user.email,
-                phone=current_user.phone_number,
-                address_line_1=selected_address.address_line_1,
-                city=selected_address.city,
-                state=selected_address.state,
-                country=selected_address.country,
-                coupon=coupon_code,
-                order_total=grand_total,
-                discount_value=discount_value,
-                final_total=final_total,  # Assign the Decimal value
-                tax=tax,
-                ip=request.META.get('REMOTE_ADDR'),
-            )
+                order = Order.objects.create(
+                    user=current_user,
+                    first_name=current_user.first_name,
+                    last_name=current_user.last_name,
+                    email=current_user.email,
+                    phone=current_user.phone_number,
+                    address_line_1=selected_address.address_line_1,
+                    city=selected_address.city,
+                    state=selected_address.state,
+                    country=selected_address.country,
+                    coupon=coupon_code,
+                    order_total=grand_total,
+                    coupon_discount=discount_value,
+                    final_total=final_total,  # Assign the Decimal value
+                    tax=tax,
+                    ip=request.META.get('REMOTE_ADDR'),
+                )
 
-            # Generate order number
-            current_datetime = timezone.now()
-            yr = current_datetime.year
-            mt = current_datetime.month
-            dt = current_datetime.day
-            d = datetime(yr, mt, dt)
-            current_date = d.strftime("%Y%m%d")
-            order_number = current_date + str(order.id)
-            order.order_number = order_number
-            order.save()
+                # Generate order number
+                current_datetime = timezone.now()
+                yr = current_datetime.year
+                mt = current_datetime.month
+                dt = current_datetime.day
+                d = datetime(yr, mt, dt)
+                current_date = d.strftime("%Y%m%d")
+                order_number = current_date + str(order.id)
+                order.order_number = order_number
+                order.save()
 
-            # Update product stock after successful order
-            #for cart_item in cart_items:
-                #product = cart_item.product
-                #product.stock -= cart_item.quantity
-                #product.save()
+                order = Order.objects.get(user=current_user, is_ordered=False, order_number=order_number)
 
-            order = Order.objects.get(user=current_user, is_ordered=False, order_number=order_number)
+                context = {
+                    'order': order,
+                    'cart_items': cart_items,
+                    'total': total,
+                    'tax': tax,
+                    'grand_total': grand_total,
+                    'discount_value': discount_value,
+                    'final_total': final_total,
+                    'wallet_balance':wallet_balance,
+                }
 
-            context = {
-                'order': order,
-                'cart_items': cart_items,
-                'total': total,
-                'tax': tax,
-                'grand_total': grand_total,
-                'discount_value': discount_value,
-                'final_total': final_total,
-                'wallet_balance':wallet_balance,
-            }
-
-            return render(request, 'orders/payments.html', context)
+                return render(request, 'orders/payments.html', context)
+            else:
+                # check the user is selecteed an address before proceeding order
+                messages.error(request,"Please select an address")
+                return redirect('checkout')
+            
         else:
             # Handle case where user is not authenticated
-           
-            return HttpResponse("Please select ana address")
+            return redirect('login')
     else:
         return redirect('checkout')
 
@@ -240,11 +245,12 @@ def Cash_on_delivery(request, order_number):
     order.is_ordered = True
     order.save()
 
-    # Update the order status to 'ACCEPTED'
-    order.status = 'COMPLETED'
+    # Update the order status to 'processing'
+    order.status = 'Processing'
+    order.payment_status = 'pending'
+    order.payment_method = 'COD'
     order.save()
     
-
     #save the order details to orderproduct
     for item in cart_items:
         orderproduct = OrderProduct()
@@ -274,8 +280,9 @@ def Order_complete(request):
 
     try:
         order = Order.objects.get(order_number=order_number,is_ordered=True)
-        # Update the order status to 'ACCEPTED'
-        order.status = 'COMPLETED'
+        # Update the order status to 'Completed'
+        order.status = 'processing'
+        order.payment_status = 'completed'
         order.save()
 
         ordered_products = OrderProduct.objects.filter(order_id = order.id)
@@ -299,69 +306,82 @@ def Order_complete(request):
         redirect('home')
 
 
-def cancell_order(request,order_number):
+def cancell_order(request, order_number):
     # Retrieve the order based on the order number
     order = get_object_or_404(Order, order_number=order_number)
     
     # Retrieve the final_total from the Order model
     final_total = order.final_total
 
-    # Update order status to 'Cancelled' and set is_ordered to False
-    order.status = 'Cancelled'
-    order.is_ordered = False
-    order.save()
+    if order.status == 'processing':
+        # Retrieve order items and update product stock
+        order_items = OrderProduct.objects.filter(order=order)
+        for order_item in order_items:
+            product = order_item.product
+            product.stock += order_item.quantity  # Increase product stock
+            product.save()
 
-    # Retrieve order items and update product stock
-    order_items = OrderProduct.objects.filter(order=order)
-    for order_item in order_items:
-        product = order_item.product
-        product.stock += order_item.quantity  # Increase product stock
-        product.save()
+        # Update order status to 'Cancelled' and set is_ordered to False
+        order.status = 'Cancelled'
+        order.is_ordered = False
+        order.save()
 
-    # Retrieve the user's wallet if it exists, or create a new wallet if it doesn't exist
-    wallet, created = Wallet.objects.get_or_create(user=request.user)
+        # Refund payment and update wallet balance
+        if order.payment_status == 'Completed':
+            # Retrieve the user's wallet if it exists, or create a new wallet if it doesn't exist
+            wallet, created = Wallet.objects.get_or_create(user=request.user)
 
-    # Update wallet balance
-    if created:
-        wallet.balance = final_total
-    else:
-        wallet.balance += final_total
-    wallet.save()
+            # Update wallet balance
+            if created:
+                wallet.balance = final_total
+            else:
+                wallet.balance += final_total
+            wallet.save()
 
-    messages.success(request, "Order has been cancelled successfully.The paid amount is added to your wallet")
+            # Update payment status to 'Refunded'
+            order.payment_status = 'Refunded'
+            order.payment.save()
+
+            messages.success(request, "Order has been cancelled successfully. The paid amount is added to your wallet")
+        else:
+            messages.warning(request, "Order cancellation failed. Payment not completed.")
+
     return redirect('my_orders')
 
-def order_return(request,order_number):
+def order_return(request, order_number):
     # Retrieve the order based on the order number
     order = get_object_or_404(Order, order_number=order_number)
     
     final_total = order.final_total
 
-    # Update order status to 'Returned' and set is_ordered to False
-    order.status = 'Returned'
-    order.is_ordered = False
-    order.save()
+    if order.status == 'Delivered':
+        # Retrieve order items and update product stock
+        order_items = OrderProduct.objects.filter(order=order)
+        for order_item in order_items:
+            product = order_item.product
+            product.stock += order_item.quantity  # Increase product stock
+            product.save()
 
-    # Retrieve order items and update product stock
-    order_items = OrderProduct.objects.filter(order=order)
-    for order_item in order_items:
-        product = order_item.product
-        product.stock += order_item.quantity  # Increase product stock
-        product.save()
+        # Update order status to 'Returned' and set is_ordered to False
+        order.status = 'Returned'
+        order.is_ordered = False
+        order.save()
 
-    # Retrieve the user's wallet if it exists, or create a new wallet if it doesn't exist
-    wallet, created = Wallet.objects.get_or_create(user=request.user)
+        # Retrieve the user's wallet if it exists, or create a new wallet if it doesn't exist
+        wallet, created = Wallet.objects.get_or_create(user=request.user)
 
-    # Update wallet balance
-    if created:
-        wallet.balance = final_total
+        # Update wallet balance
+        if created:
+            wallet.balance = final_total
+        else:
+            wallet.balance += final_total
+        wallet.save()
+
+        messages.success(request, "Order has been returned successfully. The paid amount is added to your wallet.")
     else:
-        wallet.balance += final_total
-    wallet.save()
+        messages.warning(request, "Order return failed. Order status is not 'Delivered'.")
 
-    messages.success(request, "Order has been returned successfully.The paid amount is added to your wallet.")
-    return redirect('my_orders')  # Redirect to a success page after cancellation
-
+    return redirect('my_orders')  # Redirect to a success page after return
 
 
 
@@ -397,7 +417,7 @@ def add_to_wallet(request, order_number):
        
 
         # Update the order status to completed
-        order.status = 'completed'
+        order.status = 'processing'
         order.is_ordered = True
         order.save()
 
@@ -430,6 +450,7 @@ def add_to_wallet(request, order_number):
     except ObjectDoesNotExist:
         messages.error(request, "An error occurred while processing your order.")
         return redirect('cart')
+    
 
 
 
