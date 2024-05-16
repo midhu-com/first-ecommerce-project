@@ -2,6 +2,7 @@
 {% block title %}Orders{% endblock %}
 
 {% block content %}
+{% include 'alert.html' %}
 <div class="container mt-4">
     <h2 class="mb-4">Order Details</h2>
     <div class="table-responsive">
@@ -14,8 +15,8 @@
                     <th scope="col">Order Date</th>
                     <th scope="col">Status</th>
                     <th scope="col">Total Amount</th>
-                    <th scope="col">Payment Method</th>
-                    <th scope="col">Payment Status</th>
+                   
+                    <th scope="col">Order Status</th>
                     <th scope="col">Action</th>
                 </tr>
             </thead>
@@ -40,7 +41,7 @@
                         {% endif %}
                     </td>
                     <td>{{ order.order_total }}</td>
-                    <td>{{ order.payment_method }}</td>
+                  
                     <td>{{ order.status }}</td>
                     <td>
                         {% if order.order_number %}

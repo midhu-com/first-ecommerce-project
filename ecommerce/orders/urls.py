@@ -14,6 +14,8 @@ urlpatterns = [
 
     path('add_to_wallet/<int:order_number>/',views.add_to_wallet,name='add_to_wallet'),
 
+    path('generate_invoice_pdf/<int:order_id>/',views.generate_invoice_pdf,name='generate_invoice_pdf'),
+
    
     
    

@@ -1,0 +1,83 @@
+{% extends 'admin/base.html' %}
+{% block title %}Product Detail{% endblock %}
+
+{% block content %}
+
+<h1>{{ product.name }}</h1>
+
+<table class="table table-hover table-bordered">
+    <tbody>
+        <tr>
+            <th>Product Name:</th>
+            <td>{{ product.name }}</td>
+        </tr>
+        <tr>
+            <th>Description:</th>
+            <td>{{ product.description|truncatewords:300 }}</td>
+        </tr>
+        <tr>
+            <th>Image:</th>
+            <td> 
+                {% for image in product.images.all %}
+                    <img src="{{ image.images.url }}" alt="Product Image" width="150" height="150">
+                {% endfor %}
+            </td>
+        </tr>
+        <tr>
+            <th>Category:</th>
+            <td>{{ product.Category.name }}</td>
+        </tr>
+        <tr>
+            <th>Price:</th>
+            <td>₹{{ product.discprice }}</td>
+        </tr>
+        <tr>
+            <th>Discount:</th>
+            <td>{{ product.discount }}%</td>
+        </tr>
+        <tr>
+            <th>Weight:</th>
+            <td>{{ product.weight }} grams</td>
+        </tr>
+        <tr>
+            <th>Size and Stock:</th>
+            <td>
+                {% for size in product.product_sizes.all %}
+                    {{ size.measurement }} ({{size.stock}}),
+                {% endfor %}
+            </td>
+        </tr>
+        <tr>
+            <th>Making Charge:</th>
+            <td>₹{{ product.making_charge }}</td>
+        </tr>
+        <tr>
+            <th>Product Offer Discount:</th>
+            <td>{% if product_offer %}
+                <p>Product Offer Discount: {{ product_offer.discount_percentage }}%</p>
+            {% endif %}%</td>
+        </tr>
+        <tr>
+            <th>Category Offer Discount:</th>
+            <td>
+                {% if category_offers %}
+    <p>Category Offer Discounts:</p>
+    <ul>
+        
+            <li>{{ category_offers.discount_percentage }}%</li>
+ 
+    </ul>
+{% endif %}
+            </td>
+        </tr>
+        <tr>
+            <th></th>
+            <td>
+                <a href="{% url 'product_edit' product.pk %}" class="btn btn-sm btn-primary">Edit Product</a>
+                <a href="{% url 'product_delete' product.pk %}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this product?')">Delete Product</a>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+{% endblock %}

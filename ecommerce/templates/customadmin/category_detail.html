@@ -1,0 +1,39 @@
+{% extends 'admin/base.html' %}
+
+{% block content %}
+  <div class="container">
+    <h1>{{ category.name }}</h1>
+    <p>{{ category.description }}</p>
+
+    <img src="{{ category.image.url }}" alt="{{ product.name }}" width="300" height="100">
+
+    {% if category.is_active %}
+      <h2>Products in this category:</h2>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Product Name</th>
+            <th>Images</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for product in products %}
+            <tr>
+              <td><a href="{% url 'product_detailad' product.pk %}">{{ product.name }}</a></td>
+              <td>
+                {% for image in product.images.all %}
+                  <img src="{{ image.images.url }}" alt="Product Image" width="50" height="50">
+                {% endfor %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>This category is currently inactive.</p>
+    {% endif %}
+
+    <a href="{% url 'edit_category' category.pk %}" class="btn btn-primary">Edit Category</a>
+    <a href="{% url 'soft_delete_category' category.pk %}" class="btn btn-danger">Soft Delete</a>
+  </div>
+{% endblock %}

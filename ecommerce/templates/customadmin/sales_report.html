@@ -20,14 +20,14 @@
               <button type="submit" name="period" value="custom" class="btn btn-outline-primary {% if period == 'custom' %}active{% endif %}">Custom</button>
             </div>
           </div>
-          {% if period == 'custom' %}
-          <div class="col">
-            <input type="date" name="start_date" class="form-control" value="{{ start_date|date:'Y-m-d' }}" required>
-          </div>
-          <div class="col">
-            <input type="date" name="end_date" class="form-control" value="{{ end_date|date:'Y-m-d' }}" required>
-          </div>
-          {% endif %}
+            {% if period == 'custom' %}
+              <div class="col">
+                <input type="date" name="start_date" class="form-control" value="{{ start_date|date:'Y-m-d' }}" required>
+              </div>
+              <div class="col">
+                <input type="date" name="end_date" class="form-control" value="{{ end_date|date:'Y-m-d' }}" required>
+              </div>
+            {% endif %}
         </div>
       </form>
     </div>
@@ -76,7 +76,7 @@
       </div>
     </div>
   </div>
-  <div class="row">
+  <!--<div class="row">
     <div class="col-12 col-md-4 mb-4">
       <div class="card shadow-sm">
         <div class="card-body">
@@ -84,9 +84,9 @@
           <p class="card-text">{{ coupon_discount}}</p>
         </div>
       </div>
-    </div>
+    </div>-->
   <br>
-
+  <div class="row">
   <div class="col-12 col-md-4 mb-4">
     <div class="card shadow-sm">
       <div class="card-body">
@@ -107,7 +107,7 @@
 </div>
 </div>
 </div>
-
+</div>
 
   <div class="row">
     <div class="col-12">
@@ -133,7 +133,7 @@
               <td>{{ order.first_name }}</td>
               <td>{{ order.order_total}}</td>
               <td>{{ order.final_total }}</td>
-              <td>{{ order.discount_value }}</td>
+              <td>{{ order.discount_value}}</td>
               <td>{{ order.status }}</td>
               <td>{{ order.created_at }}</td>
             </tr>

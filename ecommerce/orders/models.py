@@ -98,8 +98,8 @@ class Order(models.Model):
         if self.status == 'Processing':
             # Restock products
             for item in self.items.all():
-                item.size.stock += item.quantity
-                item.size.save()
+                item.quantity += item.quantity
+                item.save()
 
             self.status = 'Canceled'
             self.save()

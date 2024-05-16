@@ -15,10 +15,14 @@ urlpatterns=[
     path('logout/',views.logout_view,name='logout_view'),
     path('block/<int:user_id>/', views.block_user, name='block_user'),
     path('unblock/<int:user_id>/', views.unblock_user, name='unblock_user'),
+    
     path('delete_product/<int:product_id>/', views.delete_product, name='delete_product'),
     path('edit_product/<int:product_id>/', views.edit_product, name='edit_product'),
+    path('product/<int:product_pk>/detailad/', views.product_detailad, name='product_detailad'),
+
     path('delete_category/<int:category_id>/', views.delete_category, name='delete_category'),
     path('edit_category<int:category_id>/', views.edit_category, name='edit_category'),
+    path('category/<int:category_pk>/detail', views.category_detailad, name='category_detailad'),
 
     path('orders/',views.Orders_view,name='orders'),
     path('invoice/<int:order_id>/',views.Invoice,name='invoice'),

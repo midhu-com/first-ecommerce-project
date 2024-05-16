@@ -45,6 +45,7 @@ def store(request,category_slug=None):
 
 # product desccription 
 def product_detail(request,category_slug,product_slug):
+    disc_price = 0  # Initialize disc_price with a default value
     try:
         single_product=Product.objects.get(category__slug=category_slug,slug=product_slug)
         product_images = single_product.product_images.all()  # Assuming you have a related name 'images' for the image field
@@ -63,35 +64,9 @@ def product_detail(request,category_slug,product_slug):
             orderproduct=OrderProduct.objects.filter(user=request.user,product=single_product)
         except OrderProduct.DoesNotExist:
            pass
-       
-        # offer details view   
-        product_offers = ProductOffers.objects.filter(
-            single_product=single_product,
-            start_date__lte=timezone.now(),
-            end_date__gte=timezone.now()
-        )
-        disc = 0
-        if product_offers.exists():
-            disc =round((single_product.price * product_offers[0].discount_percentage) / 100, 0)
-            
-
-
     
-        # Retrieve active category offers for the displayed product's category
-        category_offers = CategoryOffers.objects.filter(
-            category=single_product.Category,
-            start_date__lte=timezone.now(),
-            end_date__gte=timezone.now()
-        )
-
-        discc = 0
-        if category_offers.exists():
-            discc = round(single_product.price * category_offers[0].discount_percentage ,0) # Assuming you only expect one offer
-
-        #success_message = messages.get_messages(request)
-        tot_discount = disc + discc
-        disc_price=round(single_product.price-(discc+disc ),0)
     
+   
 
     # get the review
     reviews=ReviewRating.objects.filter(product_id=single_product.id,status=True)
@@ -102,11 +77,10 @@ def product_detail(request,category_slug,product_slug):
         'in_cart':in_cart,
         'orderproduct':orderproduct,
         'reviews':reviews,
-        'tot_discount':tot_discount,
-        'disc_price':disc_price,
         'in_wishlist':in_wishlist, #success_message ':success_message ,
         
     }
+   
     return render (request,'store/product_detail.html',context)
 
 def search(request):

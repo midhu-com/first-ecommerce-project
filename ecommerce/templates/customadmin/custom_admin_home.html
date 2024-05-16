@@ -1,0 +1,96 @@
+{% extends 'customadmin/base.html' %}
+
+{% block content %}
+<!-- sales_chart.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Chart</title>
+
+    <style>
+        /* Internal CSS */
+        .product-link,
+        .category-link {
+            color: #007bff; /* Blue color */
+            text-decoration: none; /* Remove underline */
+        }
+
+        .product-link:hover,
+        .category-link:hover {
+            color: #0056b3; /* Darker blue on hover */
+            text-decoration: underline; /* Underline on hover */
+        }
+    </style>
+</head>
+<body>
+    <h1>Sales Chart ({{ filter_period.capitalize }})</h1>
+    <form id="filter-form" action="{% url 'admin_view' %}" method="get">
+        <label for="period">Select Period:</label>
+        <select name="period" id="period" onchange="this.form.submit()">
+            <option value="weekly" {% if filter_period == 'weekly' %} selected {% endif %}>Weekly</option>
+            <option value="monthly" {% if filter_period == 'monthly' %} selected {% endif %}>Monthly</option>
+            <option value="yearly" {% if filter_period == 'yearly' %} selected {% endif %}>Yearly</option>
+        </select>
+        <!-- Add a hidden submit button to trigger form submission -->
+        <input type="submit" style="display: none;">
+    </form>
+    <div>
+        {{ chart_div|safe }}
+    </div>
+
+    <h2>Number of Orders</h2>
+    <div>
+        {{ orders_chart_div|safe }}
+    </div>
+    
+
+    <!-- Top Selling Products -->
+    <h2>Top Selling Products</h2>
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead class="thead-dark">
+                <tr>
+                    <th scope="col">Product Name</th>
+                    <th scope="col">Total Quantity Sold</th>
+                    <th scope="col">Product Image</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in best_selling_products %}
+                <tr>
+                    <td><a href="{% url 'product_detailad' product.id %}" class="product-link">{{ product.name }}</a></td>
+                    <td>{{ product.total_quantity_sold }}</td>
+                    <td><img src="{{ product.images.first.images.url }}" alt="{{ product.name }}" width="50" height="50"></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Top Selling Categories -->
+    <h2>Top Selling Categories</h2>
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead class="thead-dark">
+                <tr>
+                    <th scope="col">Category Name</th>
+                    <th scope="col">Total Quantity Sold</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for category in best_selling_categories %}
+                <tr>
+                    <td><a href="{% url 'category_detailad' category.id %}" class="category-link">{{ category.name }}</a></td>
+                    <td>{{ category.total_quantity_sold }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
+
+{% endblock %}

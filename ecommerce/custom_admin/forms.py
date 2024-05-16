@@ -90,7 +90,6 @@ class CouponForm(forms.ModelForm):
                 raise forms.ValidationError("Valid to date must be later than valid from date.")
         return cleaned_data
 
-   
 
 class ProductOfferForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):

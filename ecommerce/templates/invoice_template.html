@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 80%;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+        }
+        .invoice-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .invoice-header h1 {
+            margin: 0;
+        }
+        .invoice-header img {
+            max-height: 40px;
+            margin-top: 10px;
+        }
+        .invoice-details {
+            margin-bottom: 20px;
+        }
+        .invoice-details p {
+            margin: 5px 0; /* Adjust vertical margin between lines */
+            line-height: 1.2; /* Set line-height for better spacing */
+        }
+        .invoice-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        .invoice-table th, .invoice-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .invoice-table th {
+            background-color: #f2f2f2;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .text-center {
+            text-align: center;
+        }
+    </style>
+</head>
+{% load static %}
+<body>
+    <div class="container">
+        <div class="invoice-header">
+            <h1>Invoice</h1>
+            <img src="{% static 'logo.png' %}" alt="Invoice Logo">
+        </div>
+        <div class="invoice-details">
+            <p><strong>Order Number:</strong> {{ order.order_number }}</p>
+            <p><strong>Transaction ID:</strong> {{ order.payment_id }}</p>
+            <p><strong>Order Date:</strong> {{ order.created_at }}</p>
+            <p><strong>Status:</strong> {{ order.status }}</p>
+            <p><strong>Invoice To:</strong></p>
+            <p>{{ order.full_name }}</p>
+            <p>{{ order.full_address }}</p>
+            <p>{{ order.city }}, {{ order.state }}</p>
+            <p>{{ order.country }}</p>
+        </div>
+        <table class="invoice-table">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Quantity</th>
+                    <th>Unit Price</th>
+                    <th>Total Price</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in order_detail %}
+                <tr>
+                    <td>{{ item.product.product_name }}</td>
+                    <td>{{ item.quantity }}</td>
+                    <td>{{ item.product_price }} </td>
+                    <td>{{ subtotal}} </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div class="invoice-totals">
+            <p><strong>Sub Total:</strong> <span class="text-right">{{ subtotal }} </span></p>
+            <p><strong>Tax:</strong> <span class="text-right">{{ order.tax }} </span></p>
+            <p><strong>Discount:</strong> <span class="text-right">{{ coupon_discount }} </span></p>
+            <p><strong>Grand Total:</strong> <span class="text-right">{{ order.final_total }} </span></p>
+        </div>
+    </div>
+</body>
+</html>

@@ -20,6 +20,7 @@ from datetime import datetime
 from decimal import Decimal
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib import messages
+from xhtml2pdf import pisa  # Import the module from xhtml2pdf
 
 def Payments(request):
     body = json.loads(request.body)
@@ -31,7 +32,7 @@ def Payments(request):
         payment_id = body['transID'],
         payment_method = body['payment_method'],
         amount_paid = order.order_total,
-        payment_status=body['status'],
+        payment_status=body['payment_status'],
     )
     payment.save()
     
@@ -450,7 +451,47 @@ def add_to_wallet(request, order_number):
     except ObjectDoesNotExist:
         messages.error(request, "An error occurred while processing your order.")
         return redirect('cart')
+
+
+def generate_invoice_pdf(request, order_id):
+    # Fetch the order details and other necessary data
+    order = Order.objects.get(id=order_id)
+    order_detail = OrderProduct.objects.filter(order=order)
+
+    # Assuming order.final_total is a Decimal object
+    total_value = order.final_total
+
+    # Calculate GST if necessary
+    gst = total_value - (total_value / Decimal('1.03'))
+
+    # Calculate Subtotal
+    subtotal = sum(item.product_price * item.quantity for item in order_detail)
+
+    # Calculate Coupon Discount if any
+    coupon_discount = order.coupon_discount if hasattr(order, 'coupon_discount') else Decimal('0.00')
+
+    # Render the invoice HTML template with the order data
+    rendered_html = render_to_string('invoice_template.html', {
+        'order': order,
+        'order_detail': order_detail,
+        'subtotal': subtotal,
+        'order.tax': order.tax,
+        'coupon_discount': coupon_discount,
+        'order.final_total': order.final_total,
+        'gst': gst,
+    })
+
+    # Create an HttpResponse object with PDF content type
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="invoice_{order_id}.pdf"'
+
+    # Convert the rendered HTML to PDF and write to the response
+    pisa_status = pisa.CreatePDF(rendered_html, dest=response)
     
+    if pisa_status.err:
+        return HttpResponse('We had some errors with code %s' % pisa_status.err)
+    
+    return response
 
 
 

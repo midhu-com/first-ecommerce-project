@@ -29,6 +29,8 @@ from django.http import HttpResponseBadRequest
 from django.views.decorators.cache import never_cache
 from django.forms import inlineformset_factory
 from django import forms    
+import calendar
+import plotly.grapg_objs as go
 
 
 # Configure logging
@@ -36,15 +38,97 @@ logging.basicConfig(level=logging.INFO)  # Set the logging level as per your req
 logger = logging.getLogger(__name__)
 
 
-
-# Create your views here.
+@never_cache
+# to display the admin details
+@login_required(login_url='login')
 def admin_view(request):
     if not request.user.is_authenticated or not request.user.is_superuser:
         #Redirect to login page if user is not authenticated or not an admin
         return redirect('login')
+    # Define default filter period (monthly)
+    filter_period = 'monthly'
+    best_selling_products = Product.objects.annotate(total_quantity_sold=Sum('orderproduct__quantity')).exclude(total_quantity_sold=None).order_by('-total_quantity_sold')[:10]
+    best_selling_categories = Category.objects.annotate(total_quantity_sold=Sum('product__orderproduct__quantity')).exclude(total_quantity_sold=None).order_by('-total_quantity_sold')[:10]
 
-    return render(request, 'customadmin/base.html')
-                   
+    if 'period' in request.GET:
+        filter_period = request.GET['period']
+
+    end_date = datetime.now().date()
+    if filter_period == 'weekly':
+        start_date = end_date - timedelta(days=7)
+    elif filter_period == 'monthly':
+        # Start from the first day of the current month
+        start_date = end_date.replace(day=1)
+    elif filter_period == 'yearly':
+        # Start from the first day of the current year
+        start_date = end_date.replace(day=1, month=1)
+    
+    # Create a list of dates for the entire filter period
+    if filter_period == 'weekly':
+        date_range = [start_date + timedelta(days=i) for i in range(7)]
+    elif filter_period == 'monthly':
+        _, last_day = calendar.monthrange(start_date.year, start_date.month)
+        date_range = [start_date.replace(day=1) + timedelta(days=i) for i in range(last_day)]
+    elif filter_period == 'yearly':
+        date_range = [start_date.replace(month=i, day=1) for i in range(1, 13)]
+
+    # Retrieve sales data from the database based on the filter period
+    orders = Order.objects.filter(created_at__range=[start_date, end_date])
+    droporders = Order.objects.filter(Q(status='Returned') | Q(status='Cancelled'), created_at__date__range=[start_date, end_date])
+    total_sales = orders.aggregate(total_sales=Sum('original_total_value'))['total_sales'] or 0
+    total_drop_sales = droporders.aggregate(total_drop_sales=Sum('discounted_total'))['total_drop_sales'] or 0
+    total_discount = orders.aggregate(total_discount=Sum('discounted_total'))['total_discount'] or 0
+    total_coupons = orders.aggregate(total_coupons=Sum('coupon_discount'))['total_coupons'] or 0
+    net_sales = total_sales - total_coupons - total_drop_sales
+    
+    # Extract order dates and total values
+    order_dates = [order.created_at.date() for order in orders]
+    sales_data = {date: sum(order.discounted_total if order.discounted_total is not None else 0 for order in orders if order.created_at.date() == date) for date in date_range}
+
+    # Calculate monthly total sales for the yearly view
+    monthly_total_sales = {}
+    monthly_total_count = {}
+    if filter_period == 'yearly':
+        for month in range(1, 13):
+            month_orders = [order for order in orders if order.created_at.month == month]
+            month_sales = sum(order.discounted_total if order.discounted_total is not None else 0 for order in month_orders)
+            month_count = sum(1 for order in month_orders)
+            monthly_total_sales[month] = month_sales
+            monthly_total_count[month] = month_count
+
+    # Sort sales data by date
+    sorted_sales_data = sorted(sales_data.items())
+
+    # Extract sorted dates and total values
+    sorted_dates = [date for date, _ in sorted_sales_data]
+    sorted_total_values = [value for _, value in sorted_sales_data]
+
+    # Generate the sales chart
+    if filter_period == 'yearly':
+        fig = go.Figure(data=go.Scatter(x=list(monthly_total_sales.keys()), y=list(monthly_total_sales.values()), mode='lines+markers'))
+    else:
+        fig = go.Figure(data=go.Scatter(x=sorted_dates, y=sorted_total_values, mode='lines+markers'))
+
+    fig.update_layout(title=f'Sales Chart ({filter_period.capitalize()})', xaxis_title='Date', yaxis_title='Total Sales', xaxis=dict(tickangle=45))
+    chart_div = fig.to_html(full_html=False)
+
+    # Generate the order count chart using Plotly
+    if filter_period == 'yearly':
+        fig_orders = go.Figure(data=go.Scatter(x=list(monthly_total_count.keys()), y=list(monthly_total_count.values()), mode='lines+markers'))
+    else:
+        order_count_data = {date: sum(1 for order in orders if order.created_at.date() == date) for date in date_range}
+        fig_orders = go.Figure(data=go.Scatter(x=sorted_dates, y=list(order_count_data.values()), mode='lines+markers'))
+
+    fig_orders.update_layout(title=f'Number of Orders ({filter_period.capitalize()})', xaxis_title='Date', yaxis_title='Number of Orders', xaxis=dict(tickangle=45))
+    orders_chart_div = fig_orders.to_html(full_html=False)
+
+    # Pass the chart div to the template
+    return render(request, 'customadmin/custom_admin_home.html', {'chart_div': chart_div, 'orders_chart_div': orders_chart_div, 'filter_period': filter_period, 'best_selling_products': best_selling_products, 'best_selling_categories': best_selling_categories})
+    #return render(request, 'customadmin/custom_admin_home.html')
+   
+
+# To display the user details
+@never_cache                  
 def user_view(request):
     # Query all registered users
     registered_users = Account.objects.all()
@@ -54,7 +138,8 @@ def user_view(request):
     
     return render(request,'customadmin/users.html', context)
 
-
+# To dissplay the product details
+@never_cache
 def products_view(request):
     # Query all listed products
     product_list = Product.objects.all()
@@ -64,7 +149,8 @@ def products_view(request):
     
     return render(request,'customadmin/products.html',context)
 
-
+# To dissplay the category details
+@never_cache
 def category_view(request):
     # Query all listed categories
     category_list = Category.objects.all()
@@ -74,7 +160,8 @@ def category_view(request):
     
     return render(request,'customadmin/categories.html',context)
 
-
+# To display the order details
+@never_cache
 def Orders_view(request):
     # Query all registered users
     orders_list = Order.objects.all().order_by('-created_at')
@@ -86,6 +173,8 @@ def Orders_view(request):
     
     return render(request,'customadmin/orders.html',context)
 
+# To display the coupon details
+@never_cache
 def Coupon_view(request):
     # Query all listed categories
     coupon_list = Coupon.objects.all()
@@ -95,10 +184,205 @@ def Coupon_view(request):
     
     return render(request,'customadmin/coupons.html',context)
 
+
+
+
+#add new category
+@never_cache
+def add_category(request):
+    if request.method == 'POST':
+        form = CategoryForm(request.POST,request.FILES)
+        if form.is_valid():
+            form.save()
+            return redirect('categories')  # Assuming 'category_list' is the name of the URL pattern for viewing all categories
+    else:
+        form = CategoryForm()
+    return render(request, 'customadmin/add_category.html', {'form': form})
+
+
+#logout view
+@ never_cache
+@login_required(login_url='login')
+def logout_view(request):
+    auth.logout(request)
+    messages.success(request, "You are logged out.")
+    return redirect('index')
+
+# success page after add products
+@never_cache
+def success_page(request):
+    
+    return render(request, 'customadmin/success.html')
+
+# Admin have the permission to block & unblock the user
+@never_cache
+def block_user(request, user_id):
+    account = Account.objects.get(id=user_id)
+    account.is_active = False  # Block the user
+    account.save()
+    messages.success(request, f"{account.username} has been blocked.")
+    return redirect('admin_view')  # Redirect back to the custom admin page
+
+@never_cache
+def unblock_user(request, user_id):
+    account= Account.objects.get(pk=user_id)
+    if not account.is_active:
+        account.is_active = True  # Unblock the user
+        account.save()
+        messages.success(request, f"{account.username} has been unblocked.")
+    else:
+        messages.error(request, f"{account.username} is already unblocked.")
+    return redirect('admin_view')  # Redirect back to the custom admin page
+
+# add  new product details 
+@never_cache
+def add_product(request):
+    productform=ProductForm()
+    imageform=ProductImageForm()
+
+    if request.method == 'POST':
+        files=request.FILES.getlist('images')
+        productform = ProductForm(request.POST,request.FILES)
+
+        if productform.is_valid():
+            product=productform.save(commit=False)
+            category_id = request.POST.get('Category')
+            category = Category.objects.get(pk=category_id)
+            product.Category = category
+            product.save()
+            print(request,"product created successfully")
+
+            for file in files:
+                Image.objects.create(product=product,image=file)
+            return redirect('products')  # Redirect to the product list page after successful submission
+            
+    context={"form":productform,"form_image":imageform}
+    return render(request, 'customadmin/add_product.html',context)
+
+
+# edit & delete product details
+
+@never_cache
+def delete_product(request,product_id):
+    if request.method == 'POST':
+        product=get_object_or_404(Product,id=product_id)
+    # Soft delete the product by setting is_active to False
+        product.is_active=False
+        product.save()
+        return redirect('products')
+    else:
+        return redirect('products')
+    
+@never_cache   
+def edit_product(request, product_id):
+    product = get_object_or_404(Product, id=product_id)
+    ImageFormSet = inlineformset_factory(Product, Image, form=ImageForm, extra=3, can_delete=True)
+    
+    # Retrieve all categories
+    categories = Category.objects.all()
+    
+    if request.method == 'POST':
+        form = ProductForm(request.POST, instance=product)
+        #formset = ImageFormSet(request.POST, request.FILES, instance=product)
+        if form.is_valid(): #and formset.is_valid()
+            form.save()
+            #formset.save()
+            messages.success(request, 'Product edited successfully')
+            return redirect('admin_view')  # Redirect after successful form submission
+        else:
+            # Log the form errors
+            print(form.errors)
+            logger.error(form.errors)  # You need to define the logger variable
+            messages.error(request, "Form contains errors. Please correct them.")
+    else:
+         # Pass the product instance and initial category to pre-fill the form
+        form = ProductForm(instance=product, initial={
+            'product_name': product.product_name,
+            'slug': product.slug,
+            'price': product.price,
+            'stock': product.stock,
+            'category': product.category.pk,  # Pass the primary key of the category
+            'description': product.description,
+            'is_available': product.is_available,
+        }) 
+        #formset = ImageFormSet(instance=product)
+    
+    return render(request, 'customadmin/edit_product.html', {'form': form, 'product': product, """'formset': formset,""" 'categories': categories})
+
+
+#edit  & delete category details
+@never_cache
+def delete_category(request,category_id):
+    category=get_object_or_404(Category,id=category_id)
+    if request.method == 'POST':
+        category.delete()
+        return redirect('categories')
+        category.is_active=False
+        category.save()
+    else:
+        return redirect('categories')
+
+@never_cache
+def edit_category(request, category_id):
+    category = get_object_or_404(Category, id=category_id)
+
+    if request.method == 'POST':
+        form = CategoryForm(request.POST, instance=category)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Category updated successfully')
+            return redirect('categories')  # Redirect to the category list page after successful update
+    else:
+        form = CategoryForm(instance=category)
+
+    return render(request, 'customadmin/edit_category.html', {'form': form, 'category': category})
+
+
+# coupon logic is here to create new coupons add & delete coupons
+@ never_cache
+def add_coupon(request):
+    if request.method == 'POST':
+        form = CouponForm(request.POST)
+        if form.is_valid():
+            coupon = form.save(commit=False)
+            coupon.save()
+            messages.success(request,'Coupon created successfully')
+            return redirect('coupons')
+        else:
+            messages.error(request, 'Failed to add coupon. Please correct the errors.')
+            
+    else:
+        form = CouponForm()
+    
+    return render(request,'customadmin/add_coupon.html',{'form':form})
+
+@never_cache
+def edit_coupon(request, coupon_id):
+    coupon = get_object_or_404(Coupon, id=coupon_id)
+    if request.method == 'POST':
+        form = CouponForm(request.POST, instance=coupon)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Coupon updated successfully.')
+            return redirect('coupons')
+        else:
+            messages.error(request, 'Failed to update coupon. Please enter valid date.')
+    else:
+        form = CouponForm(instance=coupon)
+    return render(request, 'customadmin/edit_coupon.html', {'form': form, 'coupon': coupon})
+
+@never_cache
+def delete_coupon(request,coupon_id):
+    coupon = get_object_or_404(Coupon,id=coupon_id)
+    coupon.delete()
+    messages.success(request,'Coupon deleted successfully')
+    return redirect('coupons')
+
+
+# invoice details
+@never_cache
 @login_required(login_url='login')
 def Invoice(request,order_id):
-  
-
     order_detail=OrderProduct.objects.filter(order__order_number=order_id)
     order=get_object_or_404(Order, id=order_id)
    
@@ -137,189 +421,8 @@ def Invoice(request,order_id):
     return render(request,'customadmin/invoice.html',context)
 
 
-#add new category
-
-def add_category(request):
-    if request.method == 'POST':
-        form = CategoryForm(request.POST,request.FILES)
-        if form.is_valid():
-            form.save()
-            return redirect('categories')  # Assuming 'category_list' is the name of the URL pattern for viewing all categories
-    else:
-        form = CategoryForm()
-    return render(request, 'customadmin/add_category.html', {'form': form})
-
-
-#logout view
-@login_required(login_url='login')
-def logout_view(request):
-    auth.logout(request)
-    messages.success(request, "You are logged out.")
-    return redirect('index')
-
-# success page after add products
-def success_page(request):
-    
-    return render(request, 'customadmin/success.html')
-
-def block_user(request, user_id):
-    account = Account.objects.get(id=user_id)
-    account.is_active = False  # Block the user
-    account.save()
-    messages.success(request, f"{account.username} has been blocked.")
-    return redirect('admin_view')  # Redirect back to the custom admin page
-
-def unblock_user(request, user_id):
-    account= Account.objects.get(pk=user_id)
-    if not account.is_active:
-        account.is_active = True  # Unblock the user
-        account.save()
-        messages.success(request, f"{account.username} has been unblocked.")
-    else:
-        messages.error(request, f"{account.username} is already unblocked.")
-    return redirect('admin_view')  # Redirect back to the custom admin page
-
-# add  new product details 
-def add_product(request):
-    productform=ProductForm()
-    imageform=ProductImageForm()
-
-    if request.method == 'POST':
-        files=request.FILES.getlist('images')
-        productform = ProductForm(request.POST,request.FILES)
-
-        if productform.is_valid():
-            product=productform.save(commit=False)
-            category_id = request.POST.get('Category')
-            category = Category.objects.get(pk=category_id)
-            product.Category = category
-            product.save()
-            print(request,"product created successfully")
-
-            for file in files:
-                Image.objects.create(product=product,image=file)
-            return redirect('products')  # Redirect to the product list page after successful submission
-            
-    context={"form":productform,"form_image":imageform}
-    return render(request, 'customadmin/add_product.html',context)
-
-
-# edit & delete product details
-
-
-def delete_product(request,product_id):
-    if request.method == 'POST':
-        product=get_object_or_404(Product,id=product_id)
-    # Soft delete the product by setting is_active to False
-        product.is_active=False
-        product.save()
-        return redirect('products')
-    else:
-        return redirect('products')
-    
-def edit_product(request, product_id):
-    product = get_object_or_404(Product, id=product_id)
-    ImageFormSet = inlineformset_factory(Product, Image, form=ImageForm, extra=3, can_delete=True)
-    
-    # Retrieve all categories
-    categories = Category.objects.all()
-    
-    if request.method == 'POST':
-        form = ProductForm(request.POST, instance=product)
-        #formset = ImageFormSet(request.POST, request.FILES, instance=product)
-        if form.is_valid(): #and formset.is_valid()
-            form.save()
-            #formset.save()
-            messages.success(request, 'Product edited successfully')
-            return redirect('admin_view')  # Redirect after successful form submission
-        else:
-            # Log the form errors
-            print(form.errors)
-            logger.error(form.errors)  # You need to define the logger variable
-            messages.error(request, "Form contains errors. Please correct them.")
-    else:
-         # Pass the product instance and initial category to pre-fill the form
-        form = ProductForm(instance=product, initial={
-            'product_name': product.product_name,
-            'slug': product.slug,
-            'price': product.price,
-            'stock': product.stock,
-            'category': product.category.pk,  # Pass the primary key of the category
-            'description': product.description,
-            'is_available': product.is_available,
-        }) 
-        #formset = ImageFormSet(instance=product)
-    
-    return render(request, 'customadmin/edit_product.html', {'form': form, 'product': product, """'formset': formset,""" 'categories': categories})
-
-
-#edit  & delete category details
-
-def delete_category(request,category_id):
-    category=get_object_or_404(Category,id=category_id)
-    if request.method == 'POST':
-        category.delete()
-        return redirect('categories')
-        category.is_active=False
-        category.save()
-    else:
-        return redirect('categories')
-
-def edit_category(request, category_id):
-    category = get_object_or_404(Category, id=category_id)
-
-    if request.method == 'POST':
-        form = CategoryForm(request.POST, instance=category)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Category updated successfully')
-            return redirect('categories')  # Redirect to the category list page after successful update
-    else:
-        form = CategoryForm(instance=category)
-
-    return render(request, 'customadmin/edit_category.html', {'form': form, 'category': category})
-
-
-# coupon logic is here
-def add_coupon(request):
-    if request.method == 'POST':
-        form = CouponForm(request.POST)
-        if form.is_valid():
-            coupon = form.save(commit=False)
-            coupon.save()
-            messages.success(request,'Coupon created successfully')
-            return redirect('coupons')
-        else:
-            messages.error(request, 'Failed to add coupon. Please correct the errors.')
-            
-    else:
-        form = CouponForm()
-    
-    return render(request,'customadmin/add_coupon.html',{'form':form})
-
-def edit_coupon(request, coupon_id):
-    coupon = get_object_or_404(Coupon, id=coupon_id)
-    if request.method == 'POST':
-        form = CouponForm(request.POST, instance=coupon)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Coupon updated successfully.')
-            return redirect('coupons')
-        else:
-            messages.error(request, 'Failed to update coupon. Please enter valid date.')
-    else:
-        form = CouponForm(instance=coupon)
-    return render(request, 'customadmin/edit_coupon.html', {'form': form, 'coupon': coupon})
-
-
-def delete_coupon(request,coupon_id):
-    coupon = get_object_or_404(Coupon,id=coupon_id)
-    coupon.delete()
-    messages.success(request,'Coupon deleted successfully')
-    return redirect('coupons')
-
-
 # method to generate sales report
+
 def generate_sales_report_data(period, start_date=None, end_date=None):
     today = timezone.now().date()
     orders = Order.objects.none()
@@ -369,8 +472,6 @@ def generate_sales_report_data(period, start_date=None, end_date=None):
 
 
 
-
-
 def sales_report(request, period=None):
     if request.method == 'POST':
         period = request.POST.get('period')
@@ -385,7 +486,7 @@ def sales_report(request, period=None):
         if period not in ['daily', 'weekly', 'monthly', 'yearly', 'custom']:
             period = 'daily'
         context = generate_sales_report_data(period)
-        sales_data = context.get('sales_data', [])
+        
    
     return render(request, 'customadmin/sales_report.html', context)
 
@@ -399,6 +500,7 @@ def render_sales_report_pdf(report_data):
     response['Content-Disposition'] = 'attachment; filename="sales_report.pdf"'
     pisa.CreatePDF(html, dest=response)
     return response
+
 
 def render_sales_report_excel(report_data):
     response = HttpResponse(content_type='application/ms-excel')
@@ -420,7 +522,7 @@ def render_sales_report_excel(report_data):
 
     
 
-
+@never_cache
 def download_sales_report_pdf(request, period=None):
     if request.method == 'POST':
         period = request.POST.get('period')
@@ -455,7 +557,7 @@ def sales_report_excel(request, period=None):
     report_data = generate_sales_report_data(period, start_date, end_date)
     return render_sales_report_excel(report_data)
 
-
+# admin have tyhe prmission to change the orrder status peding->processing->shiporder->deliverd
 @never_cache
 @login_required(login_url='login')
 def admin_change_order_status(request, order_number):
@@ -512,6 +614,7 @@ def admin_deliver_order(request, order_number):
 
 
 # productoffer module create,edit  & delete
+@never_cache
 def product_offer_create(request):
     if request.method == 'POST':
         form = ProductOfferForm(request.POST)
@@ -522,6 +625,7 @@ def product_offer_create(request):
         form = ProductOfferForm()
     return render(request, 'customadmin/product_offer_create.html', {'form': form})
 
+@never_cache
 def product_offer_edit(request, pk):
     offer = get_object_or_404(ProductOffers, pk=pk)
     if request.method == 'POST':
@@ -533,12 +637,15 @@ def product_offer_edit(request, pk):
         form = ProductOfferForm(instance=offer)
     return render(request, 'customadmin/product_offer_edit.html', {'form': form})
 
+@never_cache
 def product_offer_delete(request, pk):
     offer = get_object_or_404(ProductOffers, pk=pk)
     offer.delete()
     return redirect('product_offers_list')  # Change 'admin_homepage' to the appropriate URL
   
 
+#category offer create,edit & delete.
+@ never_cache
 def category_offer_create(request):
     if request.method == 'POST':
         form = CategoryOfferForm(request.POST)
@@ -549,6 +656,7 @@ def category_offer_create(request):
         form = CategoryOfferForm()
     return render(request, 'customadmin/category_offer_create.html', {'form': form})
 
+@never_cache
 def category_offer_edit(request, pk):
     offer = get_object_or_404(CategoryOffers, pk=pk)
     if request.method == 'POST':
@@ -560,27 +668,56 @@ def category_offer_edit(request, pk):
         form = CategoryOfferForm(instance=offer)
     return render(request, 'customadmin/category_offer_edit.html', {'form': form})
 
+@never_cache
 def category_offer_delete(request, pk):
     offer = get_object_or_404(CategoryOffers, pk=pk)
     offer.delete()
     return redirect('category_offers_list')  # Change 'admin_homepage' to the appropriate URL
 
+# list the product and category offer details
+@never_cache
 def list_product_offers(request):
     # Retrieve all product offers from the database
     product_offers = ProductOffers.objects.all()
     return render(request, 'customadmin/product_offers_list.html', {'product_offers': product_offers})
 
+@never_cache
 def list_category_offers(request):
     # Retrieve all category offers from the database
     category_offers = CategoryOffers.objects.all()
     return render(request, 'customadmin/category_offers_list.html', {'category_offers': category_offers})
 
-
+@never_cache
 def offers(request):
 
     return render(request, 'customadmin/offers.html')
 
+@never_cache
+@login_required(login_url='login')
+def product_detailad(request, product_pk):
+    product = get_object_or_404(Product, pk=product_pk)
 
+    product_offer = product.offer if hasattr(product, 'offer') else None
+    category_offers = product.Category.offer if hasattr(product.Category, 'offer') else None
+    
+    context = {
+        'product': product,
+        'product_offer': product_offer,
+        'category_offers': category_offers,
+        # Add other context variables as needed (e.g., related products, reviews)
+    }
+
+    return render(request, 'customadmin/product_detail.html', context)
+
+
+@never_cache
+@login_required(login_url='login')
+def category_detailad(request, category_pk):
+    category = get_object_or_404(Category, pk=category_pk)
+    # Optionally fetch related products:
+    products = Product.objects.filter(Category=category)
+    context = {'category': category, 'products': products}
+    return render(request, 'customadmin/category_detail.html', context)
 
 
 
