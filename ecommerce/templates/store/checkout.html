@@ -35,7 +35,7 @@
                             {% csrf_token %}
                             {% if billing_address %}
                             <u>
-                                <select name="selected_address" class="form-control">
+                                <select id="address"  name="selected_address" class="form-control">
                                     <option value="">Select Address</option>
                                     {% for address in billing_address %}
                                         <option value="{{address.id}}">{{address.address_line_1}},{{address.city}},{{address.state}},{{address.country}}</option>
@@ -102,8 +102,8 @@
                                     
                                     <td> 
                                         <div class="price-wrap"> 
-                                            <var class="price">${{ cart_item.sub_total }}</var> 
-                                            <small class="text-muted"> ${{ cart_item.product.price }} each</small> 
+                                            <var class="price">${{ cart_item.product.price_after_discount }}</var> 
+                                            <small class="text-muted"> ${{ cart_item.product.price_after_discount  }} each</small> 
                                         </div> <!-- price-wrap .// -->
                                     </td>
                                 </tr>

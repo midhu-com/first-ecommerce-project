@@ -13,9 +13,9 @@
                     <th scope="col">Name</th>
                     <th scope="col">Email</th>
                     <th scope="col">Order Date</th>
-                    <th scope="col">Status</th>
+                    <th scope="col">Payment Status</th>
+                    <th scope="col">Payment Method</th>
                     <th scope="col">Total Amount</th>
-                   
                     <th scope="col">Order Status</th>
                     <th scope="col">Action</th>
                 </tr>
@@ -28,19 +28,22 @@
                     <td>{{ order.email }}</td>
                     <td>{{ order.created_at }}</td>
                     <td>
-                        {% if order.status == 'Processing' %}
-                            <span class="badge badge-warning">{{ order.status }}</span>
-                        {% elif order.status == 'Shipped' %}
-                            <span class="badge badge-info">{{ order.status }}</span>
-                        {% elif order.status == 'Delivered' %}
-                            <span class="badge badge-success">{{ order.status }}</span>
-                        {% elif order.status == 'Cancelled' %}
-                            <span class="badge badge-danger">{{ order.status }}</span>
-                        {% elif order.status == 'Returned' %}
-                            <span class="badge badge-secondary">{{ order.status }}</span>
+                        {% if order.payment %}
+                            {{ order.payment.payment_status }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if order.payment %}
+                            {{ order.payment.payment_method }}
+                        {% else %}
+                            N/A
                         {% endif %}
                     </td>
                     <td>{{ order.order_total }}</td>
+                    
+                   
                   
                     <td>{{ order.status }}</td>
                     <td>

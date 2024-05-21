@@ -3,16 +3,16 @@
 {% block content %}
 <section class="section-content padding-y bg">
     <div class="container">
-        <!-- ============================ COMPONENT 1 ================================= -->
         <!-- Breadcrumb Begin -->
         <div class="breadcrumb-option">
             <div class="container">
                 <div class="row">
                     <div class="col-lg-12">
                         <div class="breadcrumb__links">
-                            <a href="{% url 'index' %}"><i class="fa fa-home"></i> Home|</a>
-                            <a href="{% url 'store' %}">All Products|</a></li>
-                            <!-- <a href="#"></a> -->
+                            <a href="{% url 'index' %}"><i class="fa fa-home"></i> Home</a>
+                            <span class="mx-2">|</span>
+                            <a href="{% url 'store' %}">All Products</a>
+                            <span class="mx-2">|</span>
                             <span>{{ single_product.product_name }}</span>
                         </div>
                     </div>
@@ -21,20 +21,20 @@
         </div>
         <!-- Breadcrumb End -->
 
-        <div class="container mt-3">
+        <div class="container mt-5">
             <div class="row">
                 <!-- Image Gallery Section -->
-                <div class="col-md-4">
+                <div class="col-md-6">
                     <article class="gallery-wrap">
                         <div class="img-big-wrap">
-                            <a href="#"><img class="magnify" src="{{ single_product.product_images.first.image.url }}"></a>
+                            <a href="#"><img class="img-fluid magnify" src="{{ single_product.product_images.first.image.url }}"></a>
                         </div> <!-- img-big-wrap.// -->
-                        <div class="product-images mt-2">
+                        <div class="product-images mt-3">
                             <div class="row">
                                 {% for image in single_product.product_images.all %}
                                     {% if not forloop.first %} <!-- Exclude the first image -->
-                                        <div class="col-6">
-                                            <img src="{{ image.image.url }}" alt="{{ single_product.product_name }}" class="img-fluid mb-3 small-image">
+                                        <div class="col-3">
+                                            <img src="{{ image.image.url }}" alt="{{ single_product.product_name }}" class="img-fluid small-image">
                                         </div>
                                     {% endif %}
                                 {% endfor %}
@@ -42,89 +42,62 @@
                         </div>
                     </article> <!-- gallery-wrap .end// -->
                 </div> <!-- product-images.// -->
-        
+
                 <!-- Product Details Section -->
-                <div class="col-md-8">
+                <div class="col-md-6">
                     <div class="product-details">
-                        <main class="col-md-6 border-left">
-                            <!-- Product details content -->
-                            <form action="{% url 'add_cart' single_product.id %}" method="POST">  
-                                {% csrf_token %}
-                                <article class="content-body">
-                                    <h2 class="title">{{single_product.product_name}}</h2>
-                                    <div class="mb-3"> 
-                                       <var class="price h4">{{single_product.description}}</var> </p>
-                                        <p>Base Price:<var class="price h4">${{single_product.price}}</var> </p>
-                                    </div> 
-                                    
-                                        {% if product.discount_percentage > 0 %}
-                                            <p>Discount percentage: {{discount_percentage }}</p>
-                                            <p>Product offer: {{ disc }}</p>
-                                        {% else %}
-                                            <p>No product offers</p>
-                                        {% endif %}
-                                    
-                                    <hr>
-                                    <div class="row">
-                                        <div class="item-option-select">
-                                            <h6>Choose Color</h6>
-                                            <select name="color" class="form-control" required>
-                                                <option value="" disabled selected>Select</option>
-                                                {% for color in single_product.variation_set.colors %}
-                                                    <option value="{{color.variation_value | lower}}">{{color.variation_value | capfirst}}</option>
-                                                {% endfor %}
-                                            </select>    
-                                        </div>  
-                                    </div> <!-- row.// -->
-                                    <div class="row">
-                                        <div class="item-option-select">
-                                            <h6>Select Size</h6>
-                                            <select name="size" class="form-control">
-                                                <option value="" disabled selected>Select</option>
-                                                {% for size in single_product.variation_set.sizes %}
-                                                    <option value="{{size.variation_value | lower}}">{{size.variation_value | capfirst}}</option>
-                                                {% endfor %}
-                                            </select>
-                                        </div>
-                                    </div> <!-- row.// -->  
-                                    <hr>
-                                    {% if single_product.stock <= 0 %}
-                                        <h5 class="text-danger">Out Of Stock</h5>
-                                    {% else %}
-                                        <button type="submit" class="btn btn-primary"> <span class="text">Add to Cart</span> <i class="fas fa-shopping-cart"></i> </button>
-                                    {% endif %}
-                                </article>
-                            </form>  
-                            
-                            <form action="{% url 'add_wishlist' product_slug=single_product.slug %}" method="post">
-                                {% csrf_token %}
-                                <div class="d-flex justify-content-between">
-                                    {% if in_wishlist %}
-                                        <button type="button" class="btn btn-outline-success wshbtn mt-2 disabled">
-                                            <span class="text">Wishlisted</span>
-                                            <i class="fa fa-heart"></i>
-                                        </button>
-                                    {% else %}
-                                        <button type="submit" class="btn btn-outline-success wshbtn mt-2">
-                                            <span class="text">Wishlist</span>
-                                            <i class="fa fa-heart"></i>
-                                        </button>
-                                    {% endif %}
-                                </div>
-                            </form>
-                            <!-- Discounts and Coupon Section -->
-                            {% if product.discount %}
-                                <div class="mt-4">
-                                    <h4>Discounts:</h4>
-                                    <p>{{ product.discount }}% discount applied!</p>
-                            <!-- Add more discount details if needed -->
-                                </div>
+                        <h2 class="title">{{ single_product.product_name }}</h2>
+                        <p class="text-muted">{{ single_product.description }}</p>
+                        <div class="mb-3">
+                            <h4 class="price">${{ single_product.price_after_discount }}</h4>
+                            {% if single_product.discount_percentage > 0 %}
+                                <p><span class="badge badge-success">{{ single_product.discount_percentage }}% off</span></p>
+                                <p>Base Price: <del>${{ single_product.price }}</del></p>
+                            {% else %}
+                                <p>No product offers</p>
                             {% endif %}
-                        </main> <!-- col.// -->
+                        </div>
+                        <form action="{% url 'add_cart' single_product.id %}" method="POST">
+                            {% csrf_token %}
+                            <div class="form-group">
+                                <label for="color">Choose Color</label>
+                                <select name="color" class="form-control" required>
+                                    <option value="" disabled selected>Select</option>
+                                    {% for color in single_product.variation_set.colors %}
+                                        <option value="{{ color.variation_value | lower }}">{{ color.variation_value | capfirst }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="size">Select Size</label>
+                                <select name="size" class="form-control">
+                                    <option value="" disabled selected>Select</option>
+                                    {% for size in single_product.variation_set.sizes %}
+                                        <option value="{{ size.variation_value | lower }}">{{ size.variation_value | capfirst }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            {% if single_product.stock <= 0 %}
+                                <h5 class="text-danger">Out Of Stock</h5>
+                            {% else %}
+                                <button type="submit" class="btn btn-primary btn-block">Add to Cart <i class="fas fa-shopping-cart"></i></button>
+                            {% endif %}
+                        </form>
+                        <form action="{% url 'add_wishlist' product_slug=single_product.slug %}" method="post" class="mt-3">
+                            {% csrf_token %}
+                            {% if in_wishlist %}
+                                <button type="button" class="btn btn-outline-success wshbtn disabled btn-block">
+                                    Wishlisted <i class="fa fa-heart"></i>
+                                </button>
+                            {% else %}
+                                <button type="submit" class="btn btn-outline-success wshbtn btn-block">
+                                    Wishlist <i class="fa fa-heart"></i>
+                                </button>
+                            {% endif %}
+                        </form>
                     </div> <!-- product-details.// -->
                 </div> <!-- col.// -->
             </div> <!-- row.// -->
-        </div> <!-- container.// -->
         
         <!-- ============================ COMPONENT 1 END .// ================================= -->
 

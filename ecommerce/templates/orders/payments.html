@@ -31,7 +31,7 @@
                 <p class="card-text" mb-0>{{order.address_line_1}}</p>
                 <p class="card-text" mb-0>{{order.city}},{{order.state}}</p>
                 <p class="card-text" mb-0>{{order.country}}</p>
-                <p class="card-text" mb-0>{{order.phone_number}}</p>
+                <p class="card-text" mb-0>{{order.phone}}</p>
                 <p class="card-text" mb-0>{{order.email}}</p>
                 {% if order.order_note %}
                      <b>Order Note:</b>{{order.order_note}}
@@ -83,8 +83,8 @@
                             
                             <td> 
                                 <div class="price-wrap"> 
-                                    <var class="price">${{ cart_item.sub_total }}</var> 
-                                    <small class="text-muted"> ${{ cart_item.product.price }} each</small> 
+                                    <var class="price">${{ cart_item.product.price_after_discount }}</var> 
+                                    <small class="text-muted"> ${{ cart_item.product.price_after_discount }} each</small> 
                                 </div> <!-- price-wrap .// -->
                             </td>
                         </tr>
@@ -115,7 +115,7 @@
               </dl>
 			<dl class="dlist-align">
 			  <dt>Grand Total:</dt>
-			  <dd class="text-right text-dark b"><strong>${{ final_total }}</strong></dd>
+			  <dd class="text-right text-dark b"><strong>${{ final_total|floatformat:2}}</strong></dd>
 			</dl>
 			<hr>
 			<p class="text-center mb-3">
@@ -174,7 +174,8 @@ function getCookie(name) {
     var url="{% url 'payments' %}"
     var csrftoken = getCookie('csrftoken');
     var orderID = "{{order.order_number}}"
-    var payment_method = 'PayPal'
+    var payment_method = 'PAYPAL'
+    var payment_status = 'completed'
     var redirect_url = "{% url 'order_complete' %}"
    
 

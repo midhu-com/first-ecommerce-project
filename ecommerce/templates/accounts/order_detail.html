@@ -32,7 +32,8 @@
                                         <li><strong>Order</strong>#{{ order.order_number }}</li>
                                         <li><strong>Transaction ID:</strong>{{ order.payment_id }}</li>
                                         <li><strong>Order Date:</strong>{{ order.created_at }}</li>
-                                        <li><strong>Status:</strong>{{ order.status }}</li>
+                                        <li><strong>Order Status:</strong>{{ order.status }}</li>
+                                        
                                     </ul>
                                 </div>
                             </div>
@@ -59,14 +60,14 @@
                                                         </p>
                                                     </td>
                                                     <td class="text-center">{{ item.quantity }}</td>
-                                                    <td class="text-center">{{ item.product_price }} USD</td>
+                                                    <td class="text-center">{{ item.product.price_after_discount }} USD</td>
                                                 </tr>
                                             {% endfor %}
                                         </tbody>
                                         <tfoot>
                                             <tr>
                                                 <th colspan="2" class="text-right">Sub Total:</th>
-                                                <th class="text-center">{{ subtotal }}</th>
+                                                <th class="text-center">{{ subtotal}}</th>
                                             </tr>
                                             <tr>
                                                 <th colspan="2" class="text-right">Tax:</th>

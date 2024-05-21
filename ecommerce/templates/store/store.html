@@ -154,7 +154,12 @@
 
                 <figcaption class="info-wrap">
                     <a href="{{ product.get_url }}" class="title">{{ product.product_name }}</a>
-                    <div class="price mt-1">${{ product.price }}
+                    <del class="price-old">${{ product.price }}</del></p>
+                    {% if product.discount_percentage > 0 %}
+                        <p>{{ product.discount_percentage }}% off</p>
+                    
+                    {% endif %}
+                    <div class="price mt-1">${{ product.price_after_discount }}
                     </div>
                     <div>                                                                                           
                         {% if product.stock <= 0 %}

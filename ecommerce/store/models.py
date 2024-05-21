@@ -2,6 +2,8 @@ from django.db import models
 from category.models import Category
 from django.urls import reverse
 from accounts.models import Account
+from django.core.validators import MinValueValidator, MaxValueValidator
+from datetime import date
 
 # Create your models here.
 class Product(models.Model):
@@ -16,7 +18,9 @@ class Product(models.Model):
     created_date=models.DateTimeField(auto_now_add=True)
     modified_date=models.DateTimeField(auto_now=True)
     discprice = models.DecimalField(max_digits=15, decimal_places=2,default=10)
-    discount = models.IntegerField(verbose_name="Discount Percentage",default=0)
+    discount = models.IntegerField(verbose_name="Discount Percentage",default=0,validators=[MinValueValidator(0), MaxValueValidator(100)])
+    validators=[MinValueValidator(0), MaxValueValidator(100)]
+
 
 
     def get_url(self):
@@ -25,6 +29,37 @@ class Product(models.Model):
     def __str__(self):
         return self.product_name
     
+
+    def price_after_discount(self):
+        today = date.today()
+        discount = 0
+        
+        # Check for product-specific offer
+        if hasattr(self, 'offer') and self.offer.start_date <= today <= self.offer.end_date:
+            discount = max(discount, self.offer.discount_percentage)
+        
+        # Check for category-specific offer
+        if hasattr(self.category, 'offer') and self.category.offer.start_date <= today <= self.category.offer.end_date:
+            discount = max(discount, self.category.offer.discount_percentage)
+        
+        if discount > 0:
+            return round(self.price * (1 - discount / 100), 2)
+        return round(self.price, 2)
+    
+    def discount_percentage(self):
+        today = date.today()
+        discount = 0
+
+        # Check for product-specific offer
+        if hasattr(self, 'offer') and self.offer.start_date <= today <= self.offer.end_date:
+            discount = max(discount, self.offer.discount_percentage)
+
+        # Check for category-specific offer
+        if hasattr(self.category, 'offer') and self.category.offer.start_date <= today <= self.category.offer.end_date:
+            discount = max(discount, self.category.offer.discount_percentage)
+
+        return discount
+        
 class Image(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='product_images')
     image = models.ImageField(upload_to='product_images/')

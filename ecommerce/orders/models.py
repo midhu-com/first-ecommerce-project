@@ -95,7 +95,7 @@ class Order(models.Model):
     
     def cancel_order(self):
         # Method to cancel the order
-        if self.status == 'Processing':
+        if self.status.lower() == 'processing':
             # Restock products
             for item in self.items.all():
                 item.quantity += item.quantity
@@ -104,7 +104,7 @@ class Order(models.Model):
             self.status = 'Canceled'
             self.save()
 
-            if self.status == 'Completed' :
+            if self.payment.payment_status == 'Completed' :
                 user_wallet = self.user.wallet
                 user_wallet.add_funds(self.discounted_total)
                 self.payment_status = 'Refunded'
@@ -116,26 +116,27 @@ class Order(models.Model):
 
   
     def ship_order(self):
-        # Method to cancel the order
-        if self.status == 'Processing':
-            # Restock products
+        # Method to ship the order
+       
+        if self.status.lower() == 'processing':
             
             self.status ='Shipped'
             self.save()
+            
             return True
-
+       
         return False
 
   
     def deliver_order(self):
-        # Method to cancel the order
+        # Method to deliver the order
         if self.status == 'Shipped':
             self.status = 'Delivered'
             self.save()
-
-            if self.payment_status == 'Pending' :
-                self.payment_status = 'Completed'
-                self.save()
+            
+            if self.payment and self.payment.payment_method == 'COD':
+                self.payment.payment_status = 'Completed'
+                self.payment.save()
             return True
         return False
 

@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404
 import logging
 from django.shortcuts import render, redirect
 from .forms import CategoryForm,CouponForm,ProductOfferForm,CategoryOfferForm
-from orders.models import Order,OrderProduct
+from orders.models import Order,OrderProduct,Payment
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages, auth
 from orders.forms import CouponForm
@@ -30,7 +30,8 @@ from django.views.decorators.cache import never_cache
 from django.forms import inlineformset_factory
 from django import forms    
 import calendar
-import plotly.grapg_objs as go
+import json
+
 
 
 # Configure logging
@@ -38,14 +39,11 @@ logging.basicConfig(level=logging.INFO)  # Set the logging level as per your req
 logger = logging.getLogger(__name__)
 
 
-@never_cache
-# to display the admin details
 @login_required(login_url='login')
 def admin_view(request):
     if not request.user.is_authenticated or not request.user.is_superuser:
-        #Redirect to login page if user is not authenticated or not an admin
         return redirect('login')
-    # Define default filter period (monthly)
+
     filter_period = 'monthly'
     best_selling_products = Product.objects.annotate(total_quantity_sold=Sum('orderproduct__quantity')).exclude(total_quantity_sold=None).order_by('-total_quantity_sold')[:10]
     best_selling_categories = Category.objects.annotate(total_quantity_sold=Sum('product__orderproduct__quantity')).exclude(total_quantity_sold=None).order_by('-total_quantity_sold')[:10]
@@ -57,13 +55,10 @@ def admin_view(request):
     if filter_period == 'weekly':
         start_date = end_date - timedelta(days=7)
     elif filter_period == 'monthly':
-        # Start from the first day of the current month
         start_date = end_date.replace(day=1)
     elif filter_period == 'yearly':
-        # Start from the first day of the current year
         start_date = end_date.replace(day=1, month=1)
-    
-    # Create a list of dates for the entire filter period
+
     if filter_period == 'weekly':
         date_range = [start_date + timedelta(days=i) for i in range(7)]
     elif filter_period == 'monthly':
@@ -72,20 +67,16 @@ def admin_view(request):
     elif filter_period == 'yearly':
         date_range = [start_date.replace(month=i, day=1) for i in range(1, 13)]
 
-    # Retrieve sales data from the database based on the filter period
     orders = Order.objects.filter(created_at__range=[start_date, end_date])
     droporders = Order.objects.filter(Q(status='Returned') | Q(status='Cancelled'), created_at__date__range=[start_date, end_date])
-    total_sales = orders.aggregate(total_sales=Sum('original_total_value'))['total_sales'] or 0
-    total_drop_sales = droporders.aggregate(total_drop_sales=Sum('discounted_total'))['total_drop_sales'] or 0
+    total_sales = orders.aggregate(total_sales=Sum('final_total'))['total_sales'] or 0
+    total_drop_sales = droporders.aggregate(total_drop_sales=Sum('coupon_discount'))['total_drop_sales'] or 0
     total_discount = orders.aggregate(total_discount=Sum('discounted_total'))['total_discount'] or 0
-    total_coupons = orders.aggregate(total_coupons=Sum('coupon_discount'))['total_coupons'] or 0
+    total_coupons = orders.aggregate(total_coupons=Count('coupon'))['total_coupons'] or 0
     net_sales = total_sales - total_coupons - total_drop_sales
-    
-    # Extract order dates and total values
-    order_dates = [order.created_at.date() for order in orders]
+
     sales_data = {date: sum(order.discounted_total if order.discounted_total is not None else 0 for order in orders if order.created_at.date() == date) for date in date_range}
 
-    # Calculate monthly total sales for the yearly view
     monthly_total_sales = {}
     monthly_total_count = {}
     if filter_period == 'yearly':
@@ -96,35 +87,46 @@ def admin_view(request):
             monthly_total_sales[month] = month_sales
             monthly_total_count[month] = month_count
 
-    # Sort sales data by date
     sorted_sales_data = sorted(sales_data.items())
-
-    # Extract sorted dates and total values
-    sorted_dates = [date for date, _ in sorted_sales_data]
+    sorted_dates = [date.strftime('%Y-%m-%d') for date, _ in sorted_sales_data]
     sorted_total_values = [value for _, value in sorted_sales_data]
 
-    # Generate the sales chart
     if filter_period == 'yearly':
-        fig = go.Figure(data=go.Scatter(x=list(monthly_total_sales.keys()), y=list(monthly_total_sales.values()), mode='lines+markers'))
+        chart_data = {
+            'labels': list(monthly_total_sales.keys()),
+            'data': list(monthly_total_sales.values())
+        }
     else:
-        fig = go.Figure(data=go.Scatter(x=sorted_dates, y=sorted_total_values, mode='lines+markers'))
+        chart_data = {
+            'labels': sorted_dates,
+            'data': [float(value) for value in sorted_total_values]  # Convert Decimal to float
+        }
 
-    fig.update_layout(title=f'Sales Chart ({filter_period.capitalize()})', xaxis_title='Date', yaxis_title='Total Sales', xaxis=dict(tickangle=45))
-    chart_div = fig.to_html(full_html=False)
+    order_count_data = {date: sum(1 for order in orders if order.created_at.date() == date) for date in date_range}
+    sorted_order_count_data = sorted(order_count_data.items())
+    sorted_order_dates = [date.strftime('%Y-%m-%d') for date, _ in sorted_order_count_data]
+    sorted_order_counts = [count for _, count in sorted_order_count_data]
 
-    # Generate the order count chart using Plotly
     if filter_period == 'yearly':
-        fig_orders = go.Figure(data=go.Scatter(x=list(monthly_total_count.keys()), y=list(monthly_total_count.values()), mode='lines+markers'))
+        orders_chart_data = {
+            'labels': list(monthly_total_count.keys()),
+            'data': list(monthly_total_count.values())
+        }
     else:
-        order_count_data = {date: sum(1 for order in orders if order.created_at.date() == date) for date in date_range}
-        fig_orders = go.Figure(data=go.Scatter(x=sorted_dates, y=list(order_count_data.values()), mode='lines+markers'))
+        orders_chart_data = {
+            'labels': sorted_order_dates,
+            'data':  [int(count) for count in sorted_order_counts]  # Convert Decimal to int if needed
+        }
 
-    fig_orders.update_layout(title=f'Number of Orders ({filter_period.capitalize()})', xaxis_title='Date', yaxis_title='Number of Orders', xaxis=dict(tickangle=45))
-    orders_chart_div = fig_orders.to_html(full_html=False)
+    context = {
+        'chart_data': json.dumps(chart_data),
+        'orders_chart_data': json.dumps(orders_chart_data),
+        'filter_period': filter_period,
+        'best_selling_products': best_selling_products,
+        'best_selling_categories': best_selling_categories,
+    }
 
-    # Pass the chart div to the template
-    return render(request, 'customadmin/custom_admin_home.html', {'chart_div': chart_div, 'orders_chart_div': orders_chart_div, 'filter_period': filter_period, 'best_selling_products': best_selling_products, 'best_selling_categories': best_selling_categories})
-    #return render(request, 'customadmin/custom_admin_home.html')
+    return render(request, 'customadmin/custom_admin_home.html', context)
    
 
 # To display the user details
@@ -165,10 +167,12 @@ def category_view(request):
 def Orders_view(request):
     # Query all registered users
     orders_list = Order.objects.all().order_by('-created_at')
+    payment = Payment.objects.all()
     
     # Prepare user data to pass to the template
     context={
         'orders_list':orders_list,
+        'payment':payment,
         }
     
     return render(request,'customadmin/orders.html',context)
@@ -379,46 +383,47 @@ def delete_coupon(request,coupon_id):
     return redirect('coupons')
 
 
-# invoice details
 @never_cache
 @login_required(login_url='login')
-def Invoice(request,order_id):
-    order_detail=OrderProduct.objects.filter(order__order_number=order_id)
-    order=get_object_or_404(Order, id=order_id)
-   
+def Invoice(request, order_id):
+    # Use get_object_or_404 to retrieve the order, which will automatically handle the DoesNotExist exception
+    order = get_object_or_404(Order, id=order_id)
+    order_detail = OrderProduct.objects.filter(order__id=order_id)
     
-    subtotal=0
-    
+    subtotal = 0
     for i in order_detail:
-        subtotal +=i.product_price * i.quantity
-        
+        subtotal += i.product_price * i.quantity
+    
     # Fetching payment method from the related Payment object
     payment_method = order.payment.payment_method if order.payment else None
 
     # Retrieve coupon discount
     coupon_discount = 0
     if order.coupon:
-            try:
-                coupon = Coupon.objects.get(code=order.coupon)
-                # Check if the coupon is valid
-                if coupon.valid_from <= order.created_at <= coupon.valid_to:
-                    coupon_discount = coupon.discount
-            except Coupon.DoesNotExist:
-                pass
+        try:
+            coupon = Coupon.objects.get(code=order.coupon)
+            # Check if the coupon is valid
+            if coupon.valid_from <= order.created_at <= coupon.valid_to:
+                coupon_discount = coupon.discount
+        except Coupon.DoesNotExist:
+            pass
+     # Assuming tax is a percentage value stored in the order
+    tax = (2 * subtotal) / 100
+    
+    
+    # Calculate final total
+    final_total = subtotal + tax - coupon_discount
 
-
-
-    context={
-        'order_detail':order_detail,
-        'order':order,
-        'subtotal':subtotal,
-        'coupon_discount':coupon_discount,
+    context = {
+        'order_detail': order_detail,
+        'order': order,
+        'subtotal': subtotal,
+        'coupon_discount': coupon_discount,
+        'final_total':final_total,
         'payment': order.payment,
         'payment_method': payment_method,
-
-       
     }
-    return render(request,'customadmin/invoice.html',context)
+    return render(request, 'customadmin/invoice.html', context)
 
 
 # method to generate sales report
@@ -595,10 +600,12 @@ def admin_ship_order(request, order_number):
 
     if order.ship_order():
         messages.success(request, f"Order #{order.order_number} has been shipped")
+       
     else:
         messages.error(request, f"Unable to ship order #{order.order_number}")
+        
 
-    return redirect('admin_ship_order', order_number=order.order_number)
+    return redirect('orders')
 
 @never_cache
 @login_required(login_url='login')

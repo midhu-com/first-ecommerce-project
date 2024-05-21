@@ -176,7 +176,7 @@ def cart(request,total=0,quantity=0,cart_items=None):
             cart=Cart.objects.get(cart_id=_cart_id(request))
             cart_items=Cartitem.objects.filter(cart=cart,is_active=True)
         for cart_item in cart_items:
-            total+=(cart_item.product.price * cart_item.quantity)
+            total+=(cart_item.product.price_after_discount() * cart_item.quantity)
             quantity+=cart_item.quantity
         tax=(2 * total)/100
         grand_total=total + tax
@@ -200,11 +200,16 @@ def checkout(request,total=0,quantity=0,cart_items=None):
     try:
         tax = 0
         grand_total = 0
-        
+        selected_address = None
 
         # Check if the user has saved billing address details
             
         billing_address = Address.objects.filter(user=request.user)
+
+        if request.method == 'POST':
+            selected_address_id = request.POST.get('selected_address')
+            if selected_address_id:
+                selected_address = get_object_or_404(Address,id=selected_address_id)
 
         if request.user.is_authenticated:
             cart_items=Cartitem.objects.filter(user=request.user,is_active=True)
@@ -233,6 +238,7 @@ def checkout(request,total=0,quantity=0,cart_items=None):
         'tax':tax,  
         'grand_total':grand_total,
         'billing_address':billing_address,# Pass the billing address to the template
+        'selected_address':selected_address,
     }
     return render(request,'store/checkout.html',context)
 

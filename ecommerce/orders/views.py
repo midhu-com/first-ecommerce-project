@@ -8,7 +8,7 @@ from carts.models import Cart
 import datetime
 from django.template.context_processors import csrf
 from django.urls import reverse
-from orders.models import Address
+from accounts.models import Address
 from store.models import Product
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -37,6 +37,7 @@ def Payments(request):
     payment.save()
     
     order.payment = payment
+    order.status = 'processing'
     order.is_ordered=True
     order.save()
 
@@ -50,7 +51,7 @@ def Payments(request):
         orderproduct.user_id=request.user.id
         orderproduct.product_id=item.product_id
         orderproduct.quantity=item.quantity
-        orderproduct.product_price=item.product.price
+        orderproduct.product_price=item.product.price_after_discount()
         orderproduct.ordered=True
         orderproduct.save()
 
@@ -107,12 +108,19 @@ def Order_Confirmation(request, order_number):
     return render(request, 'orders/order_confirmation.html', context)
    
 from django.shortcuts import redirect
-
+@login_required(login_url='login')
 def Place_order(request, total=0, quantity=0):
     if request.method == 'POST':
+        selected_address_id = request.POST.get('selected_address')
+        if selected_address_id:
+            selected_address = get_object_or_404(Address, id=selected_address_id, user=request.user)
+        else:
+                # check the user is selecteed an address before proceeding order
+                messages.error(request,"Please select an address")
+                return redirect('checkout')
         if request.user.is_authenticated:
             current_user = request.user
-            selected_address_id = request.POST.get('selected_address')
+            
 
             # Retrieve the coupon code from the form
             coupon_code = request.POST.get('coupon_code')
@@ -139,7 +147,7 @@ def Place_order(request, total=0, quantity=0):
             tax = 0
             final_total = 0
             for cart_item in cart_items:
-                total += cart_item.product.price * cart_item.quantity
+                total += cart_item.product.price_after_discount() * cart_item.quantity
                 quantity += cart_item.quantity
 
             tax = (2 * total) / 100
@@ -166,9 +174,10 @@ def Place_order(request, total=0, quantity=0):
                     final_total = grand_total
                     messages.error(request,"Coupon Does Not Exist")
                     return redirect('checkout')
+            else:
+                final_total = grand_total
 
-            if selected_address_id:
-                selected_address = get_object_or_404(Address, id=selected_address_id)
+            
 
                 order = Order.objects.create(
                     user=current_user,
@@ -210,13 +219,11 @@ def Place_order(request, total=0, quantity=0):
                     'discount_value': discount_value,
                     'final_total': final_total,
                     'wallet_balance':wallet_balance,
+                    'selected_address':selected_address,
                 }
 
                 return render(request, 'orders/payments.html', context)
-            else:
-                # check the user is selecteed an address before proceeding order
-                messages.error(request,"Please select an address")
-                return redirect('checkout')
+            
             
         else:
             # Handle case where user is not authenticated
@@ -231,37 +238,43 @@ def Place_order(request, total=0, quantity=0):
 def Cash_on_delivery(request, order_number):
     # Retrieve the order based on the order number
     order = get_object_or_404(Order, order_number=order_number)
-
+   
     # Move the cart items to Order Product table
     cart_items = Cartitem.objects.filter(user=request.user)
     
+    # Create a payment instance for Cash on Delivery
+    payment = Payment(
+        user=request.user,
+        payment_id='COD-' + str(order_number),  # Generate a unique payment ID
+        payment_method='COD',
+        amount_paid=order.order_total,
+        payment_status='Pending'
+    )
+    payment.save()
+
+    # Link the payment to the order
+    order.payment = payment
+    order.is_ordered = True
+    order.status = 'Processing'
+    order.save()
+    
+    # Save the order details to OrderProduct
+    for item in cart_items:
+        orderproduct = OrderProduct(
+            order_id=order.id,
+            user_id=request.user.id,
+            product_id=item.product_id,
+            quantity=item.quantity,
+            product_price=item.product.price_after_discount(),
+            ordered=True
+        )
+        orderproduct.save()
 
     # Update product stock after successful order
     for cart_item in cart_items:
         product = cart_item.product
         product.stock -= cart_item.quantity
         product.save()
-
-    # Update the order status to indicate payment confirmation
-    order.is_ordered = True
-    order.save()
-
-    # Update the order status to 'processing'
-    order.status = 'Processing'
-    order.payment_status = 'pending'
-    order.payment_method = 'COD'
-    order.save()
-    
-    #save the order details to orderproduct
-    for item in cart_items:
-        orderproduct = OrderProduct()
-        orderproduct.order_id = order.id
-        orderproduct.user_id = request.user.id
-        orderproduct.product_id = item.product_id
-        orderproduct.quantity = item.quantity
-        orderproduct.product_price = item.product.price
-        orderproduct.ordered = True
-        orderproduct.save()
 
     # Delete all the current user's cart items
     Cartitem.objects.filter(user=request.user).delete()
@@ -272,7 +285,6 @@ def Cash_on_delivery(request, order_number):
         'order': order
     }
     return render(request, 'orders/order_confirmation.html', context)
-
 
 
 def Order_complete(request):
@@ -432,7 +444,7 @@ def add_to_wallet(request, order_number):
             orderproduct.user_id = request.user.id
             orderproduct.product_id = item.product_id
             orderproduct.quantity = item.quantity
-            orderproduct.product_price = item.product.price
+            orderproduct.product_price = item.product.price_after_discount()
             orderproduct.ordered = True
             orderproduct.save()
 

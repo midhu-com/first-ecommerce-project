@@ -185,7 +185,11 @@ $(document).ready(function() {
             </a>
             <figcaption class="info-wrap">
                 <a href="{{ product.get_url }}" class="title">{{ product.product_name }}</a>
-                <div class="price mt-1">${{ product.price }}</div>
+                <del class="price-old">${{ product.price }}</del>
+        		<span class="price-discount">${{ product.price_after_discount }}</span>
+				{% if product.discount_percentage > 0 %}
+        			<span class="discount-label">({{ product.discount_percentage }}% off)</span>
+				{% endif %}
             </figcaption>
         </div>
     </div> <!-- col.// -->
