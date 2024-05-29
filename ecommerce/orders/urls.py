@@ -13,6 +13,7 @@ urlpatterns = [
     path('order_return/<int:order_number>/',views.order_return,name='order_return'),
 
     path('add_to_wallet/<int:order_number>/',views.add_to_wallet,name='add_to_wallet'),
+    path('wallet_data/',views.wallet_data,name='wallet_data'),
 
     path('generate_invoice_pdf/<int:order_id>/',views.generate_invoice_pdf,name='generate_invoice_pdf'),
 

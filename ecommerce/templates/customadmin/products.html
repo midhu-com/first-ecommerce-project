@@ -2,6 +2,7 @@
 {% block title %}Products{% endblock %}
 
 {% block content %}
+{% include 'alert.html'%}
 <div class="container mt-4">
     <div class="row">
         <div class="col">
@@ -15,7 +16,7 @@
                         <th scope="col">Price</th>
                         <th scope="col">Stock</th>
                         <th scope="col">Image</th>
-                        <th scope="col">is_available</th>
+                        <th scope="col">Availability</th>
                         <th scope="col">Actions</th>
                     </tr>
                 </thead>
@@ -38,13 +39,15 @@
                         <td>
                             <!-- Add edit and delete actions -->
 
-                            <form action="{% url 'edit_product' product.id %}" method="post" style="display: inline;">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-danger">Edit</button>
-                            </form>
+                            <a href="{% url 'edit_product' product.id %}" class="btn btn-primary">Edit</a>
+
                             <form action="{% url 'delete_product' product.id %}" method="post" style="display: inline;">
-                                {% csrf_token %}
+                            {% csrf_token %}
                                 <button type="submit" class="btn btn-success">Unlist</button>
+                            </form>
+                            <form action="{% url 'restore_product' product.id %}" method="post" style="display: inline;">
+                            {% csrf_token %}
+                                <button type="submit" class="btn btn-success">Restore</button>
                             </form>
                         </td>
                         

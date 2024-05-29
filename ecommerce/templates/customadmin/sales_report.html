@@ -20,16 +20,19 @@
               <button type="submit" name="period" value="custom" class="btn btn-outline-primary {% if period == 'custom' %}active{% endif %}">Custom</button>
             </div>
           </div>
-            {% if period == 'custom' %}
-              <div class="col">
-                <input type="date" name="start_date" class="form-control" value="{{ start_date|date:'Y-m-d' }}" required>
-              </div>
-              <div class="col">
-                <input type="date" name="end_date" class="form-control" value="{{ end_date|date:'Y-m-d' }}" required>
-              </div>
-            {% endif %}
+          {% if period == 'custom' %}
+            <div class="col">
+              <input type="date" name="start_date" class="form-control" value="{{ start_date|date:'Y-m-d' }}" required>
+            </div>
+            <div class="col">
+              <input type="date" name="end_date" class="form-control" value="{{ end_date|date:'Y-m-d' }}" required>
+            </div>
+          {% endif %}
         </div>
       </form>
+    </div>
+  </div>
+  
     </div>
   </div>
   <div class="row">

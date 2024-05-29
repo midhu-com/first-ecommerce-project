@@ -35,22 +35,16 @@
             <th>Discount:</th>
             <td>{{ product.discount }}%</td>
         </tr>
+        
         <tr>
-            <th>Weight:</th>
-            <td>{{ product.weight }} grams</td>
-        </tr>
-        <tr>
-            <th>Size and Stock:</th>
+            <th>Stock:</th>
             <td>
-                {% for size in product.product_sizes.all %}
-                    {{ size.measurement }} ({{size.stock}}),
-                {% endfor %}
+               
+                     ({{size.stock}}),
+                
             </td>
         </tr>
-        <tr>
-            <th>Making Charge:</th>
-            <td>₹{{ product.making_charge }}</td>
-        </tr>
+        
         <tr>
             <th>Product Offer Discount:</th>
             <td>{% if product_offer %}

@@ -185,11 +185,16 @@ $(document).ready(function() {
             </a>
             <figcaption class="info-wrap">
                 <a href="{{ product.get_url }}" class="title">{{ product.product_name }}</a>
-                <del class="price-old">${{ product.price }}</del>
-        		<span class="price-discount">${{ product.price_after_discount }}</span>
 				{% if product.discount_percentage > 0 %}
-        			<span class="discount-label">({{ product.discount_percentage }}% off)</span>
-				{% endif %}
+				<span class="price-discount">Rs.{{ product.price_after_discount|floatformat:0 }}</span>
+				<del class="price-old">Rs.{{ product.price }}</del>
+				<br>
+				<span class="discount-label" style="color: red; font-size: 12px; font-weight: normal;">
+					GET ({{ product.discount_percentage|floatformat:0 }}% OFF)
+				</span>
+			{% else %}
+				<span class="price">Rs.{{ product.price }}</span>
+			{% endif %}
             </figcaption>
         </div>
     </div> <!-- col.// -->
@@ -217,7 +222,7 @@ $(document).ready(function() {
 				<p class="text-muted"> &copy 2019 Company name </p>
 			</div>
 			<div class="col-md-8 text-md-center">
-				<span  class="px-2">info@pixsellz.io</span>
+				<span  class="px-2">rainbow@fashionstore</span>
 				<span  class="px-2">+879-332-9375</span>
 				<span  class="px-2">Street name 123, Avanue abc</span>
 			</div>

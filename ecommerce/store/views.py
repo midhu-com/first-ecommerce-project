@@ -1,20 +1,18 @@
-from django.shortcuts import render,get_object_or_404,redirect
+from django.shortcuts import render,get_object_or_404
 from django.http import HttpResponseRedirect,Http404
 from.models import Product,ReviewRating
 from category.models import Category
 from carts.views import _cart_id
 from carts.models import Cartitem
-from django.core.paginator import EmptyPage,PageNotAnInteger,Paginator
+from django.core.paginator import Paginator
 from django.db.models import Q
 from .forms import ReviewForm
 from django.contrib import messages
 from orders.models import OrderProduct
 from carts.models import wishlist
 from store.models import Product
-from django.db.models import Avg,Sum
-from custom_admin.forms import ProductOfferForm,CategoryOfferForm
-from orders.models import ProductOffers,CategoryOffers
-from django.utils import timezone
+
+
 
 
 # Create your views here.
@@ -24,13 +22,13 @@ def store(request,category_slug=None):
 
     if category_slug != None:
         categories =get_object_or_404(Category,slug=category_slug)
-        products   =Product.objects.filter(category=categories,is_available=True)
-        paginator=Paginator(products,3)
+        products   =Product.objects.filter(category=categories,is_available=True).order_by('id')
+        paginator=Paginator(products,10)
         page=request.GET.get('page')
         paged_products=paginator.get_page(page)
         product_count=products.count()
     else:
-        products=Product.objects.all().filter(is_available=True).order_by('id')
+        products=Product.objects.filter(is_available=True).order_by('id')
         paginator=Paginator(products,8)
         page=request.GET.get('page')
         paged_products=paginator.get_page(page)

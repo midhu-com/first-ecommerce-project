@@ -107,7 +107,7 @@ def Order_Confirmation(request, order_number):
     # Render the order confirmation template with the order details
     return render(request, 'orders/order_confirmation.html', context)
    
-from django.shortcuts import redirect
+
 @login_required(login_url='login')
 def Place_order(request, total=0, quantity=0):
     if request.method == 'POST':
@@ -158,71 +158,79 @@ def Place_order(request, total=0, quantity=0):
                     coupon = Coupon.objects.get(code=coupon_code)
                     current_datetime = timezone.now()
                     if coupon.valid_from <= current_datetime <= coupon.valid_to:
-                        discount_value = coupon.discount
-                        print("Discount value:",discount_value)
-                        final_total = Decimal(str(grand_total)) - discount_value
-                        # Ensure final_total is not negative
-                        final_total = max(0, final_total)
-                       
+                        if grand_total >= 500:
+
+                            discount_value = coupon.discount
+                            print("Discount value:",discount_value)
+                            final_total = Decimal(str(grand_total)) - discount_value
+
+                            # Ensure final_total is not negative
+                            final_total = max(0, final_total)
+                            messages.success(request, f"You saved an additional {discount_value} as coupon discount!")
+                        else:
+                            discount_value = 0
+                            final_total = grand_total
+                            messages.warning(request, "Sorry! you are not eligible for this coupon..The minimum purchase amount must be at least 500.")
+            
                     else:
                         discount_value = 0
                         final_total = grand_total
-                        messages.warning(request,"Coupon is invalid")
+                        messages.warning(request,"Coupon is invalid! Please select valid coupon code")
                         return redirect('checkout')
                 except Coupon.DoesNotExist:
                     discount_value = 0
                     final_total = grand_total
-                    messages.error(request,"Coupon Does Not Exist")
+                    messages.error(request,"Coupon Does Not Exist! Please select valid coupon code")
                     return redirect('checkout')
             else:
                 final_total = grand_total
 
             
 
-                order = Order.objects.create(
-                    user=current_user,
-                    first_name=current_user.first_name,
-                    last_name=current_user.last_name,
-                    email=current_user.email,
-                    phone=current_user.phone_number,
-                    address_line_1=selected_address.address_line_1,
-                    city=selected_address.city,
-                    state=selected_address.state,
-                    country=selected_address.country,
-                    coupon=coupon_code,
-                    order_total=grand_total,
-                    coupon_discount=discount_value,
-                    final_total=final_total,  # Assign the Decimal value
-                    tax=tax,
-                    ip=request.META.get('REMOTE_ADDR'),
-                )
+            order = Order.objects.create(
+                user=current_user,
+                first_name=current_user.first_name,
+                last_name=current_user.last_name,
+                email=current_user.email,
+                phone=current_user.phone_number,
+                address_line_1=selected_address.address_line_1,
+                city=selected_address.city,
+                state=selected_address.state,
+                country=selected_address.country,
+                coupon=coupon_code,
+                order_total=grand_total,
+                coupon_discount=discount_value,
+                final_total=final_total,  # Assign the Decimal value
+                tax=tax,
+                ip=request.META.get('REMOTE_ADDR'),
+            )
 
-                # Generate order number
-                current_datetime = timezone.now()
-                yr = current_datetime.year
-                mt = current_datetime.month
-                dt = current_datetime.day
-                d = datetime(yr, mt, dt)
-                current_date = d.strftime("%Y%m%d")
-                order_number = current_date + str(order.id)
-                order.order_number = order_number
-                order.save()
+            # Generate order number
+            current_datetime = timezone.now()
+            yr = current_datetime.year
+            mt = current_datetime.month
+            dt = current_datetime.day
+            d = datetime(yr, mt, dt)
+            current_date = d.strftime("%Y%m%d")
+            order_number = current_date + str(order.id)
+            order.order_number = order_number
+            order.save()
 
-                order = Order.objects.get(user=current_user, is_ordered=False, order_number=order_number)
+            order = Order.objects.get(user=current_user, is_ordered=False, order_number=order_number)
 
-                context = {
-                    'order': order,
-                    'cart_items': cart_items,
-                    'total': total,
-                    'tax': tax,
-                    'grand_total': grand_total,
-                    'discount_value': discount_value,
-                    'final_total': final_total,
-                    'wallet_balance':wallet_balance,
-                    'selected_address':selected_address,
-                }
+            context = {
+                'order': order,
+                'cart_items': cart_items,
+                'total': total,
+                'tax': tax,
+                'grand_total': grand_total,
+                'discount_value': discount_value,
+                'final_total': final_total,
+                'wallet_balance':wallet_balance,
+                'selected_address':selected_address,
+            }
 
-                return render(request, 'orders/payments.html', context)
+            return render(request, 'orders/payments.html', context)
             
             
         else:
@@ -319,7 +327,7 @@ def Order_complete(request):
         redirect('home')
 
 
-def cancell_order(request, order_number):
+"""def cancell_order(request, order_number):
     # Retrieve the order based on the order number
     order = get_object_or_404(Order, order_number=order_number)
     
@@ -378,6 +386,7 @@ def order_return(request, order_number):
         # Update order status to 'Returned' and set is_ordered to False
         order.status = 'Returned'
         order.is_ordered = False
+        order.payment_method = 'wallet'
         order.save()
 
         # Retrieve the user's wallet if it exists, or create a new wallet if it doesn't exist
@@ -394,8 +403,69 @@ def order_return(request, order_number):
     else:
         messages.warning(request, "Order return failed. Order status is not 'Delivered'.")
 
-    return redirect('my_orders')  # Redirect to a success page after return
+    return redirect('my_orders')  # Redirect to a success page after return"""
 
+
+@login_required(login_url='login')
+def cancell_order(request, order_number):
+    order = get_object_or_404(Order, order_number=order_number)
+    final_total = order.final_total
+
+    if order.cancel_order():
+        messages.success(request, f"Order #{order.order_number} has been canceled")
+    else:
+        messages.error(request, f"Unable to cancel order #{order.order_number}")
+
+    # Refund payment and update wallet balance
+    if order.payment and order.payment.payment_status == 'Completed':
+        # Retrieve the user's wallet if it exists, or create a new wallet if it doesn't exist
+        wallet, created = Wallet.objects.get_or_create(user=request.user)
+
+        # Update wallet balance
+        if created:
+            wallet.balance = final_total
+        else:
+            wallet.balance += final_total
+        wallet.save()
+
+        # Update payment status to 'Refunded'
+        order.payment_status = 'Refunded'
+        
+        order.payment.save()
+
+
+    return redirect('my_orders')
+
+@login_required(login_url='login')
+def order_return(request, order_number):
+    order = get_object_or_404(Order, order_number=order_number)
+    final_total = order.final_total
+
+    if order.return_order():
+        messages.success(request, f"Order #{order.order_number} has been returned")
+       
+    else:
+        messages.error(request, f"Unable to return order #{order.order_number}")
+
+    # Refund payment and update wallet balance
+    if order.payment and order.payment.payment_status == 'Completed':
+        # Retrieve the user's wallet if it exists, or create a new wallet if it doesn't exist
+        wallet, created = Wallet.objects.get_or_create(user=request.user)
+
+        # Update wallet balance
+        if created:
+            wallet.balance = final_total
+        else:
+            wallet.balance += final_total
+        wallet.save()
+
+        # Update payment status to 'Refunded'
+        order.payment_status = 'Refunded'
+        
+        order.payment.save()
+        
+
+    return redirect('my_orders')
 
 
 def create_coupon(request):
@@ -408,44 +478,59 @@ def create_coupon(request):
         form = CouponForm()
     return render(request, 'create_coupon.html', {'form': form})
 
-
+@login_required
 def add_to_wallet(request, order_number):
     try:
         # Retrieve the user's wallet
         wallet = Wallet.objects.get(user=request.user)
 
         # Retrieve the order based on the order number
-        order = Order.objects.get(order_number=order_number)
+        order = get_object_or_404(Order,order_number=order_number)
 
         # Retrieve the final total from the order
         final_total = order.final_total
 
         if wallet.balance < final_total:
             messages.error(request, "Insufficient balance in your wallet!")
+            
             return redirect('cart')
 
         # Reduce the final total amount from the wallet balance
         wallet.balance -= final_total
         wallet.save()
        
+       # Create a payment instance for Cash on Delivery
+        payment = Payment(
+            user=request.user,
+            payment_id='WALLET-' + str(order_number),  # Generate a unique payment ID
+            payment_method='WALLET',
+            amount_paid=order.final_total,
+            payment_status='Completed'
+        )
+        payment.save()
 
-        # Update the order status to completed
+
+        #Update the order with payment and status
+        order.payment = payment
         order.status = 'processing'
         order.is_ordered = True
         order.save()
 
         # Retrieve the cart items and add them to the order
         cart_items = Cartitem.objects.filter(user=request.user)
+
         for item in cart_items:
+
             #save the order details to orderproduct
         
-            orderproduct = OrderProduct()
-            orderproduct.order_id = order.id
-            orderproduct.user_id = request.user.id
-            orderproduct.product_id = item.product_id
-            orderproduct.quantity = item.quantity
-            orderproduct.product_price = item.product.price_after_discount()
-            orderproduct.ordered = True
+            orderproduct = OrderProduct(
+                    order_id=order.id,
+                    user_id=request.user.id,
+                    product_id=item.product_id,
+                    quantity=item.quantity,
+                    product_price=item.product.price_after_discount(),
+                    ordered=True
+            )
             orderproduct.save()
 
         # Delete all the current user's cart items
@@ -453,13 +538,13 @@ def add_to_wallet(request, order_number):
 
         # Update product stock after successful order
         for cart_item in cart_items:
-            product = cart_item.product
+            product = cart_item.product 
             product.stock -= cart_item.quantity
             product.save()
 
         # Redirect to order confirmation page with order details
         messages.success(request, "Order placed successfully. Amount deducted from your wallet")
-        return redirect('order_confirmation', order_number=order.order_number)
+        return render(request,'orders/order_confirmation.html', {'order_number':order_number,'order':order})
     except ObjectDoesNotExist:
         messages.error(request, "An error occurred while processing your order.")
         return redirect('cart')
@@ -505,10 +590,19 @@ def generate_invoice_pdf(request, order_id):
     
     return response
 
+@login_required(login_url='login')
+def wallet_data(request):
+    try:
+        wallet = Wallet.objects.get(user=request.user)
+    except ObjectDoesNotExist:
+        # If wallet doesn't exist, create a new one for the user
+        wallet = Wallet.objects.create(user=request.user, balance=0.00)
+        print(f"Wallet for user {request.user.username}: {wallet}")
 
+    # Fetching orders with payment method 'wallet'
+    wallet_data = Order.objects.filter( payment__payment_method='WALLET').order_by('-created_at')
 
-
-
+    return render(request, 'accounts/wallet_data.html', {'wallet': wallet, 'wallet_data': wallet_data})
 
 
 

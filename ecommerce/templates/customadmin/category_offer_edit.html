@@ -24,7 +24,16 @@
                     {% for field in form %}
                         <tr>
                             <th>{{ field.label_tag }}</th>
-                            <td>{{ field }}</td>
+                            <td>{% if field.name in "start_date,end_date" %}
+                                <div class="input-group date" id="{{ field.name }}_picker" data-provide="datepicker">
+                                  {{ field }}
+                                  <div class="input-group-append">
+                                    <span class="input-group-text"><i class="fa fa-calendar"></i></span>
+                                  </div>
+                                </div>
+                                {% else %}
+                                {{ field }}
+                                {% endif %}</td>
                             <td>
                                 {% if field.errors %}
                                     {% for error in field.errors %}

@@ -172,3 +172,7 @@ EMAIL_USE_TLS=True
 
 # Set session timeout to 15 minutes (15 * 60 seconds)
 SESSION_COOKIE_AGE = 900  # 15 minutes
+
+# Redirects after login/logout
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/accounts/login/'

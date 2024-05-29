@@ -26,10 +26,20 @@
                           <div class=" form-group col-md-6">
                             <label>First Name</label>
                             {{user_form.first_name}}
+                            {% if user_form.first_name.errors %}
+                              <div class="text-danger">
+                                {{ user_form.first_name.errors }}
+                              </div>
+                            {% endif %}
                           </div>
                           <div class=" form-group col-md-6">
                             <label>Last Name </label>
                             {{user_form.last_name}}
+                            {% if user_form.last_name.errors %}
+                            <div class="text-danger">
+                              {{ user_form.last_name.errors }}
+                            </div>
+                          {% endif %}
                           </div>
                         </div>
                           
@@ -37,6 +47,11 @@
                           <div class=" form-group col-md-6">
                             <label>Phone Number</label>
                             {{user_form.phone_number}}
+                            {% if user_form.phone_number.errors %}
+                            <div class="text-danger">
+                              {{ user_form.phone_number.errors }}
+                            </div>
+                            {% endif %}
                           </div>
                           <div class=" form-group col-md-6">
                             <label>Profile picture</label>

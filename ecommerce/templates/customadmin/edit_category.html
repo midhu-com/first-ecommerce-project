@@ -2,27 +2,72 @@
 {% block title %}Edit Category{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="row">
-        <div class="col-md-6 mx-auto">
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title">Edit Category</h2>
+{% include 'alert.html' %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="card-title mb-0">Edit Category</h4>
                 </div>
                 <div class="card-body">
                     <form method="post" action="{% url 'edit_category' category.id %}" enctype="multipart/form-data">
                         {% csrf_token %}
-                       
+                        <div class="form-group mb-3">
                             <label for="id_category_name" class="form-label">Category Name</label>
-                            <input type="text" id="id_category_name" name="category_name" value="{{ category.category_name }}" class="form-control">
-                            <label for="id_new_cat_image" class="form-label">Upload New Category Image</label>
-                            <input type="file" id="id_new_cat_image" name="cat_image" class="form-control">
-                            <!--{% if category.cat_image %}
-                                <img src="{{ category.cat_image.url }}" alt="{{ category.category_name }} Image" class="mt-2 img-thumbnail" style="max-width: 200px;">
-                            {% endif %}-->  
-                        
+                            <input type="text" id="id_category_name" name="category_name" value="{{ form.category_name.value|default:category.category_name }}" class="form-control">
+                            {% if form.category_name.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.category_name.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label for="id_slug" class="form-label">Slug</label>
+                            <input type="text" id="id_slug" name="slug" value="{{ form.slug.value|default:category.slug }}" class="form-control">
+                            {% if form.slug.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.slug.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label for="id_description" class="form-label">Description</label>
+                            <textarea id="id_description" name="description" rows="4" class="form-control">{{ form.description.value|default:category.description }}</textarea>
+                            {% if form.description.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.description.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label for="id_cat_image" class="form-label">Upload New Category Image</label>
+                            <input type="file" id="id_cat_image" name="cat_image" class="form-control">
+                            {% if form.cat_image.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.cat_image.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            {% if category.cat_image %}
+                                <div class="mt-3">
+                                    <img src="{{ category.cat_image.url }}" alt="{{ category.category_name }} Image" class="img-thumbnail" style="max-width: 200px;">
+                                </div>
+                            {% endif %}
+                        </div>
+
                         <div class="d-grid">
-                            <button type="submit" class="btn btn-primary ">Update Category</button>
+                            <button type="submit" class="btn btn-success">Update Category</button>
                         </div>
                     </form>
                 </div>

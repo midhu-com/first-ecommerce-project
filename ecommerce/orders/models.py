@@ -5,13 +5,14 @@ from store.models import Product,Variation
 from django.core.validators import MaxValueValidator
 from django.utils import timezone
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
 
 class Payment(models.Model):
 
     COD = 'COD'
     PAYPAL = 'Paypal'
     WALLET = 'Wallet'
-    WALLET_AND_PAYPAL= 'WalletandRazorpay'
+    WALLET_AND_PAYPAL= 'Wallet and paypal'
 
     PAYMENT_METHOD_CHOICES = [
     (COD, 'COD'),
@@ -74,7 +75,7 @@ class Order(models.Model):
     final_total = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # Example field for final_total
     ip=models.CharField(max_length=20,blank=True)
     is_ordered=models.BooleanField(default=False)
-    created_at=models.DateTimeField(auto_now_add=True)
+    created_at=models.DateTimeField(default=timezone.now)
     updated_at=models.DateTimeField(auto_now_add=True)
     original_total_value = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     discounted_total = models.DecimalField(max_digits=15, decimal_places=2, default=0)
@@ -101,15 +102,11 @@ class Order(models.Model):
                 item.quantity += item.quantity
                 item.save()
 
+            # Update order status to canceled
             self.status = 'Canceled'
             self.save()
 
-            if self.payment.payment_status == 'Completed' :
-                user_wallet = self.user.wallet
-                user_wallet.add_funds(self.discounted_total)
-                self.payment_status = 'Refunded'
-                self.save()
-
+            
             return True
         return False
 
@@ -152,12 +149,7 @@ class Order(models.Model):
             self.status = 'Refunded'
             self.save()
 
-            if self.status == self.Completed:
-                # Refund the payment if it was completed
-                user_wallet = self.user.wallet
-                user_wallet.add_funds(self.discounted_total)
-                self.payment_status = 'Refunded'
-                self.save()
+           
 
             return True
         return False
@@ -240,8 +232,12 @@ class ProductOffers(models.Model):
     product = models.OneToOneField(Product, on_delete=models.CASCADE, related_name='offer')
     name = models.CharField(max_length=100, default="Default Offer Name")
     discount_percentage = models.DecimalField(max_digits=5, decimal_places=2, validators=[MaxValueValidator(50)])
-    start_date = models.DateField()
-    end_date = models.DateField()
+    start_date = models.DateField(validators=[MinValueValidator(timezone.now().date())])
+    end_date = models.DateField(validators=[MinValueValidator(timezone.now().date())])
+
+    def clean(self):
+        if self.start_date > self.end_date:
+            raise ValidationError("Start date cannot be after end date.")
 
 class CategoryOffers(models.Model):
     category = models.OneToOneField(Category, on_delete=models.CASCADE, related_name='offer')
@@ -249,6 +245,11 @@ class CategoryOffers(models.Model):
     discount_percentage = models.DecimalField(max_digits=5, decimal_places=2 ,validators=[MaxValueValidator(50)])
     start_date = models.DateField()
     end_date = models.DateField()
+    
+    def clean(self):
+        if self.start_date > self.end_date:
+            raise ValidationError("Start date cannot be after end date.")
+
     
 
         

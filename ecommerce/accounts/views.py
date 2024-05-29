@@ -349,7 +349,7 @@ def AddAddress(request):
             address.user = request.user
             address.save()
             messages.success(request,'Address added successfully')
-            return redirect('checkout') # Redirect to profile view
+            return redirect('profile') # Redirect to profile view
     else:
         address_form = AddressForm()
 
@@ -364,7 +364,7 @@ def EditAddress(request, address_id):
         form = AddressForm(request.POST, instance=address)
         if form.is_valid():
             form.save()
-            return redirect('checkout')  # Redirect to checkout
+            return redirect('profile')  # Redirect to checkout
     else:
         form = AddressForm(instance=address)
     return render(request, 'accounts/edit_address.html', {'form': form, 'address': address})
@@ -373,6 +373,6 @@ def DeleteAddress(request, address_id):
     address = get_object_or_404(Address, id=address_id)
     if request.method == 'POST':
         address.delete()
-        return redirect('checkout')  # Redirect to address list view
+        return redirect('profile')  # Redirect to address list view
     return render(request, 'delete_address.html', {'address': address})
 

@@ -1,21 +1,9 @@
-
-<!-- product_offer_create.html -->
 {% extends 'customadmin/customhome.html' %}
 
 {% block content %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Product Offer</title>
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <style>
-        /* Add custom CSS here if needed */
-    </style>
-</head>
-<body>
+
+{% include 'alert.html' %}
+
     <div class="container">
         <h1>Create Product Offer</h1>
         <form method="post">
@@ -25,7 +13,25 @@
                     {% for field in form %}
                         <tr>
                             <th>{{ field.label_tag }}</th>
-                            <td>{{ field }}</td>
+                            <td>
+                                {% if field.name in "start_date,end_date" %}
+                                <div class="input-group date" id="{{ field.name }}_picker" data-provide="datepicker">
+                                  {{ field }}
+                                  <div class="input-group-append">
+                                    <span class="input-group-text"><i class="fa fa-calendar"></i></span>
+                                  </div>
+                                </div>
+                                {% else %}
+                                {{ field }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if field.errors %}
+                                    {% for error in field.errors %}
+                                        <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                {% endif %}
+                            </td>
                         </tr>
                     {% endfor %}
                 </table>
@@ -33,10 +39,21 @@
             <button type="submit" class="btn btn-primary">Create</button>
         </form>
     </div>
-    <!-- Bootstrap JS -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-</body>
-</html>
-{% endblock content %}
+   
+    <!-- Initialize date pickers -->
+    <script type="text/javascript">
+        $(document).ready(function(){
+          $('#valid_from_picker').datepicker({
+            format: 'yyyy-mm-dd',
+            autoclose: true,
+            todayHighlight: true
+          });
+          $('#valid_to_picker').datepicker({
+            format: 'yyyy-mm-dd',
+            autoclose: true,
+            todayHighlight: true
+          });
+        });
+    </script>
+
+{% endblock %}

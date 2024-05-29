@@ -17,10 +17,12 @@ urlpatterns=[
     path('unblock/<int:user_id>/', views.unblock_user, name='unblock_user'),
     
     path('delete_product/<int:product_id>/', views.delete_product, name='delete_product'),
+    path('restore_product/<int:product_id>/', views.restore_product, name='restore_product'),
     path('edit_product/<int:product_id>/', views.edit_product, name='edit_product'),
     path('product/<int:product_pk>/detailad/', views.product_detailad, name='product_detailad'),
 
     path('delete_category/<int:category_id>/', views.delete_category, name='delete_category'),
+    path('restore_category/<int:category_id>/', views.restore_category, name='restore_category'),
     path('edit_category<int:category_id>/', views.edit_category, name='edit_category'),
     path('category/<int:category_pk>/detail', views.category_detailad, name='category_detailad'),
 

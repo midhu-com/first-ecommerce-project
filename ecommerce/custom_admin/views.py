@@ -13,9 +13,7 @@ from orders.models import Order,OrderProduct,Payment
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages, auth
 from orders.forms import CouponForm
-from store.forms import ImageForm
 from orders.models import Coupon,CategoryOffers,ProductOffers
-from django.utils.timezone import make_aware
 from datetime import datetime
 from django.http import HttpResponse
 from django.db.models import Sum,Q,Count
@@ -27,7 +25,6 @@ from django.template.loader import render_to_string
 from xhtml2pdf import pisa
 from django.http import HttpResponseBadRequest
 from django.views.decorators.cache import never_cache
-from django.forms import inlineformset_factory
 from django import forms    
 import calendar
 import json
@@ -38,7 +35,7 @@ import json
 logging.basicConfig(level=logging.INFO)  # Set the logging level as per your requirement
 logger = logging.getLogger(__name__)
 
-
+@never_cache
 @login_required(login_url='login')
 def admin_view(request):
     if not request.user.is_authenticated or not request.user.is_superuser:
@@ -70,19 +67,19 @@ def admin_view(request):
     orders = Order.objects.filter(created_at__range=[start_date, end_date])
     droporders = Order.objects.filter(Q(status='Returned') | Q(status='Cancelled'), created_at__date__range=[start_date, end_date])
     total_sales = orders.aggregate(total_sales=Sum('final_total'))['total_sales'] or 0
-    total_drop_sales = droporders.aggregate(total_drop_sales=Sum('coupon_discount'))['total_drop_sales'] or 0
-    total_discount = orders.aggregate(total_discount=Sum('discounted_total'))['total_discount'] or 0
+    total_drop_sales = droporders.aggregate(total_drop_sales=Sum('final_total'))['total_drop_sales'] or 0
+    total_discount = orders.aggregate(total_discount=Sum('coupon_discount'))['total_discount'] or 0
     total_coupons = orders.aggregate(total_coupons=Count('coupon'))['total_coupons'] or 0
     net_sales = total_sales - total_coupons - total_drop_sales
 
-    sales_data = {date: sum(order.discounted_total if order.discounted_total is not None else 0 for order in orders if order.created_at.date() == date) for date in date_range}
+    sales_data = {date: sum(order.final_total if order.final_total is not None else 0 for order in orders if order.created_at.date() == date) for date in date_range}
 
     monthly_total_sales = {}
     monthly_total_count = {}
     if filter_period == 'yearly':
         for month in range(1, 13):
             month_orders = [order for order in orders if order.created_at.month == month]
-            month_sales = sum(order.discounted_total if order.discounted_total is not None else 0 for order in month_orders)
+            month_sales = sum(order.final_total if order.final_total is not None else 0 for order in month_orders)
             month_count = sum(1 for order in month_orders)
             monthly_total_sales[month] = month_sales
             monthly_total_count[month] = month_count
@@ -94,7 +91,7 @@ def admin_view(request):
     if filter_period == 'yearly':
         chart_data = {
             'labels': list(monthly_total_sales.keys()),
-            'data': list(monthly_total_sales.values())
+            'data': [str(value) for value in monthly_total_sales.values()]
         }
     else:
         chart_data = {
@@ -130,7 +127,8 @@ def admin_view(request):
    
 
 # To display the user details
-@never_cache                  
+@never_cache  
+@login_required(login_url='login')                
 def user_view(request):
     # Query all registered users
     registered_users = Account.objects.all()
@@ -142,6 +140,7 @@ def user_view(request):
 
 # To dissplay the product details
 @never_cache
+@login_required(login_url='login')  
 def products_view(request):
     # Query all listed products
     product_list = Product.objects.all()
@@ -153,6 +152,7 @@ def products_view(request):
 
 # To dissplay the category details
 @never_cache
+@login_required(login_url='login')  
 def category_view(request):
     # Query all listed categories
     category_list = Category.objects.all()
@@ -164,6 +164,7 @@ def category_view(request):
 
 # To display the order details
 @never_cache
+@login_required(login_url='login')  
 def Orders_view(request):
     # Query all registered users
     orders_list = Order.objects.all().order_by('-created_at')
@@ -203,14 +204,25 @@ def add_category(request):
         form = CategoryForm()
     return render(request, 'customadmin/add_category.html', {'form': form})
 
-
+def superuser_required(view_func):
+    """
+    Decorator for views that checks if the user is a superadmin,
+    redirects to the login page if not.
+    """
+    def _wrapped_view(request, *args, **kwargs):
+        if request.user.is_authenticated and request.user.is_superadmin:  # Custom attribute
+            return view_func(request, *args, **kwargs)
+        else:
+            return redirect('login')  # Redirect to the login page or any other page
+    return _wrapped_view
+        
 #logout view
-@ never_cache
-@login_required(login_url='login')
+
+@superuser_required
 def logout_view(request):
     auth.logout(request)
     messages.success(request, "You are logged out.")
-    return redirect('index')
+    return redirect('login')
 
 # success page after add products
 @never_cache
@@ -250,15 +262,17 @@ def add_product(request):
 
         if productform.is_valid():
             product=productform.save(commit=False)
-            category_id = request.POST.get('Category')
-            category = Category.objects.get(pk=category_id)
-            product.Category = category
-            product.save()
-            print(request,"product created successfully")
-
-            for file in files:
-                Image.objects.create(product=product,image=file)
-            return redirect('products')  # Redirect to the product list page after successful submission
+            category = productform.cleaned_data['category']
+            if category.is_active:
+                product.save()
+                for file in files:
+                    Image.objects.create(product=product,image=file)
+                messages.success(request, 'Product added successfully')
+                return redirect('products')
+            else:
+                messages.error(request, 'Cannot add product to an inactive category')
+        else:
+            messages.error(request, 'Please correct the errors below!')
             
     context={"form":productform,"form_image":imageform}
     return render(request, 'customadmin/add_product.html',context)
@@ -267,75 +281,107 @@ def add_product(request):
 # edit & delete product details
 
 @never_cache
+@login_required
 def delete_product(request,product_id):
     if request.method == 'POST':
         product=get_object_or_404(Product,id=product_id)
     # Soft delete the product by setting is_active to False
-        product.is_active=False
+        product.is_available=False
         product.save()
+        logger.info(f"Product {product_id} soft deleted by user {request.user.id}")
         return redirect('products')
-    else:
+
+    return redirect('products')
+@never_cache
+@login_required
+def restore_product(request,product_id):
+    if request.method == 'POST':
+        product=get_object_or_404(Product,id=product_id)
+    # restore the product after delete setting is_active to True
+        product.is_available=True
+        product.save()
+        logger.info(f"Product {product_id} restored by user {request.user.id}")
         return redirect('products')
+
+    return redirect('products')
     
 @never_cache   
 def edit_product(request, product_id):
+
     product = get_object_or_404(Product, id=product_id)
-    ImageFormSet = inlineformset_factory(Product, Image, form=ImageForm, extra=3, can_delete=True)
-    
-    # Retrieve all categories
-    categories = Category.objects.all()
-    
+    product_form = ProductForm(request.POST, instance=product)
+    image_form = ProductImageForm(request.POST,request.FILES)
+
     if request.method == 'POST':
-        form = ProductForm(request.POST, instance=product)
-        #formset = ImageFormSet(request.POST, request.FILES, instance=product)
-        if form.is_valid(): #and formset.is_valid()
-            form.save()
-            #formset.save()
-            messages.success(request, 'Product edited successfully')
-            return redirect('admin_view')  # Redirect after successful form submission
+        
+        product_form = ProductForm(request.POST, instance=product)
+        image_form = ProductImageForm(request.POST,request.FILES)
+    
+        if product_form.is_valid():
+            category = product_form.cleaned_data['category']
+            if category.is_active:
+                product = product_form.save()
+
+                # Save the images
+                for file in request.FILES.getlist('images'):
+                    Image.objects.create(product=product,image=file)
+
+                messages.success(request, 'Product edited successfully')
+                return redirect('products')  # Redirect after successful form submission
+            else:
+                messages.error(request, 'Cannot assign product to an inactive category')
         else:
             # Log the form errors
-            print(form.errors)
-            logger.error(form.errors)  # You need to define the logger variable
+           
+            logger.error(product_form.errors)  # You need to define the logger variable
             messages.error(request, "Form contains errors. Please correct them.")
     else:
-         # Pass the product instance and initial category to pre-fill the form
-        form = ProductForm(instance=product, initial={
-            'product_name': product.product_name,
-            'slug': product.slug,
-            'price': product.price,
-            'stock': product.stock,
-            'category': product.category.pk,  # Pass the primary key of the category
-            'description': product.description,
-            'is_available': product.is_available,
-        }) 
-        #formset = ImageFormSet(instance=product)
+        product_form = ProductForm(instance=product)
+        image_form = ProductImageForm()
+        
     
-    return render(request, 'customadmin/edit_product.html', {'form': form, 'product': product, """'formset': formset,""" 'categories': categories})
+    return render(request, 'customadmin/edit_product.html', {
+        'product_form': product_form, 'product': product,'image_form':image_form
+        })
 
 
-#edit  & delete category details
+#edit,delete & restore category details
 @never_cache
 def delete_category(request,category_id):
-    category=get_object_or_404(Category,id=category_id)
-    if request.method == 'POST':
-        category.delete()
-        return redirect('categories')
-        category.is_active=False
+    
+    category = get_object_or_404(Category, id=category_id)
+    if category:
+        category.is_active = False
         category.save()
+        messages.success(request, 'Category deleted successfully')
     else:
-        return redirect('categories')
+        messages.error(request, 'Category does not exist')
+    
+    return redirect('categories')
+    
+def restore_category(request, category_id):
+    category = get_object_or_404(Category, id=category_id)
+    if category:
+        category.is_active = True
+        category.save()
+        messages.success(request, 'Category restored successfully')
+    else:
+         messages.error(request, 'Category does not exist')
+    return redirect('categories')
+
 
 @never_cache
 def edit_category(request, category_id):
     category = get_object_or_404(Category, id=category_id)
 
     if request.method == 'POST':
-        form = CategoryForm(request.POST, instance=category)
+        form = CategoryForm(request.POST,request.FILES, instance=category)
         if form.is_valid():
             form.save()
             messages.success(request, 'Category updated successfully')
             return redirect('categories')  # Redirect to the category list page after successful update
+        else:
+            messages.success(request, 'Please correct the errors below!')
     else:
         form = CategoryForm(instance=category)
 
@@ -445,6 +491,9 @@ def generate_sales_report_data(period, start_date=None, end_date=None):
         # Parse start_date and end_date if provided
         start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
         end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+        if start_date > end_date:
+            raise ValueError("Start date cannot be after end date.")
+    
         # Check if start_date is before end_date
  
 
@@ -584,7 +633,7 @@ def admin_change_order_status(request, order_number):
 def admin_cancel_order(request, order_number):
     order = get_object_or_404(Order, order_number=order_number)
 
-    if order.cancel_order():
+    if order.cancel_order():    
         messages.success(request, f"Order #{order.order_number} has been canceled")
     else:
         messages.error(request, f"Unable to cancel order #{order.order_number}")

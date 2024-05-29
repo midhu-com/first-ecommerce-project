@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<!-- ========================= SECTION CONTENT ========================= -->
+<section class="section-conten padding-y bg">
+    {% include 'alert.html' %}
+    <div class="container">
+        <div class="row">
+        {% include 'dashboard_sidebar.html' %}
+        <main class="col-md-9 pt-5">
+            <article class="card">
+            <header class="card-header">
+                <strong class="d-inline-block mr-3">Your Wallet</strong>
+                <!-- Display user's wallet balance -->
+                <br><br>
+                <span class="text">Balance: RS.{{ wallet.balance|floatformat:2  }}</span>
+    
+            </header>
+    <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Order Number</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                        <!-- Add more columns if needed -->
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in wallet_data %}
+                    <tr>
+                        <td>{{ order.order_number }}</td>
+                        <td>{{ order.final_total|floatformat:2  }}</td>
+                        <td>{{ order.status }}</td>
+                        <!-- Add more columns if needed -->
+                    </tr>
+                    {% endfor %}
+                    {% if not wallet_data %}
+                        <tr>
+                            <td colspan="3">No orders found with wallet payment method.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+            </article>
+        </main>
+    </div>
+    </div>
+    </section>
+{% endblock%}

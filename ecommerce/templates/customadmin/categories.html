@@ -2,6 +2,7 @@
 {% block title %}Category{% endblock %}
 
 {% block content %}
+{% include 'alert.html' %}
 <div class="container mt-4">
     <div class="row">
         <div class="col">
@@ -15,6 +16,7 @@
                         <tr>
                             <th scope="col">Name</th>
                             <th scope="col">Image</th>
+                            <th scope="col">Status</th>
                             <th scope="col">Actions</th>
                         </tr>
                     </thead>
@@ -23,12 +25,18 @@
                         <tr>
                             <td>{{ category.category_name }}</td>
                             <td><img src="{{ category.cat_image.url }}" alt="{{ category.category_name }}" style="max-width: 100px; max-height: 100px;"></td>
+                            <td>{{ category.is_active }}</td>
                             <td>
                                 <div class="btn-group" role="group">
                                     <a href="{% url 'edit_category' category.id %}" class="btn btn-sm btn-primary">Edit</a>
                                     <form action="{% url 'delete_category' category.id %}" method="post" style="display: inline;">
-                                        {% csrf_token %}
+                                    {% csrf_token %} 
                                         <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                    </form>
+                                    <form action="{% url 'restore_category' category.id %}" method="post" style="display: inline;">   
+                                    {% csrf_token %}   
+                                        <button type="submit" class="btn btn-sm btn-danger">Restore</button>
+                                   
                                     </form>
                                 </div>
                             </td>

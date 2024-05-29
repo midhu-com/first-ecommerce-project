@@ -16,6 +16,7 @@
 	</div>
 </div>
 <!-- Breadcrumb End -->
+{% include 'alert.html'%}
 <section class="section-content padding-y bg">
 	
     <div class="container"> 
@@ -107,11 +108,11 @@
 			</dl>
 			<dl class="dlist-align">
 			  <dt>Tax:</dt>
-			  <dd class="text-right"> ${{ tax }}</dd>
+			  <dd class="text-right"> +${{ tax }}</dd>
 			</dl>
             <dl class="dlist-align">
-                <dt>Discount:</dt>
-                <dd class="text-right"> ${{discount_value}}</dd>
+                <dt>Coupon Discount:</dt>
+                <dd class="text-right">- ${{discount_value}}</dd>
               </dl>
 			<dl class="dlist-align">
 			  <dt>Grand Total:</dt>

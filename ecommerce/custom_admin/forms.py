@@ -36,7 +36,7 @@ class ProductForm(forms.ModelForm):
         model = Product
         exclude = ['created_date', 'modified_date']  # Exclude these fields from the form
         fields = ['product_name','slug','description', 'price','stock','is_available','category']
-        widgets={
+        """widgets={
             'product_name':forms.TextInput(attrs={'class':'form-control'}),
             'slug':forms.TextInput(attrs={'class':'form-control'}),
             'description':forms.TextInput(attrs={'class':'form-control'}),
@@ -46,11 +46,11 @@ class ProductForm(forms.ModelForm):
             'category':forms.Select(attrs={'class':'form-select'}),
             
             
-            }
+            }"""
     def __init__(self, *args, **kwargs):
         super(ProductForm, self).__init__(*args, **kwargs)
         # Query the Category model to get all categories
-        self.fields['category'].queryset = Category.objects.all() 
+        self.fields['category'].queryset = Category.objects.filter(is_active=True)
         # Set initial value for category if it exists
         if 'instance' in kwargs:
             instance = kwargs['instance']
@@ -101,8 +101,40 @@ class ProductOfferForm(forms.ModelForm):
         model = ProductOffers
         fields = '__all__'  # You can customize the fields as needed
 
+    def clean_discount_percentage(self):
+        discount_percentage = self.cleaned_data.get('discount_percentage')
+        if discount_percentage  < 0:
+            raise forms.ValidationError("Offer value cannot be negative.")
+        if discount_percentage > 50:
+            raise forms.ValidationError("Offer value percentage cannot be more than 50%.")
+        return discount_percentage
+       
+
+    def clean(self):
+        cleaned_data = super().clean()
+        start_date = cleaned_data.get('start_date')
+        end_date = cleaned_data.get('end_date')
+        if start_date and end_date and start_date > end_date:
+            raise forms.ValidationError("Start date cannot be after end date.")
+        return cleaned_data
+
 class CategoryOfferForm(forms.ModelForm):
     class Meta:
         model = CategoryOffers
         fields = '__all__'  # You can customize the fields as needed
-   
+
+    def clean_discount_percentage(self):
+        discount_percentage = self.cleaned_data.get('discount_percentage')
+        if discount_percentage < 0:
+            raise forms.ValidationError("Offer value cannot be negative.")
+        if discount_percentage > 50:
+            raise forms.ValidationError("Offer value percentage cannot be more than 50%.")
+        return discount_percentage
+
+    def clean(self):
+        cleaned_data = super().clean()
+        start_date = cleaned_data.get('start_date')
+        end_date = cleaned_data.get('end_date')
+        if start_date and end_date and start_date > end_date:
+            raise forms.ValidationError("Start date cannot be after end date.")
+        return cleaned_data

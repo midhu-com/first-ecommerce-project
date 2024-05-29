@@ -37,7 +37,30 @@ class RegistrationForm(forms.ModelForm):
         if password != confirm_password:
             self.add_error('confirm_password', "Passwords do not match.")
 
+# Custom validator for names
+def validate_name(value):
+    if not value.isalpha():
+        raise ValidationError('Name must contain only letters.')
+
+# Custom validator for phone number
+def validate_phone_number(value):
+    if not value.isdigit() or len(value) != 10 or value == "0000000000":
+        raise ValidationError('Enter a valid 10-digit phone number.')
+    
 class UserForm(forms.ModelForm):
+    first_name = forms.CharField(
+        validators=[validate_name],
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    last_name = forms.CharField(
+        validators=[validate_name],
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    phone_number = forms.CharField(
+        validators=[validate_phone_number],
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+
     class Meta:
         model=Account
         fields=('first_name','last_name','phone_number')   

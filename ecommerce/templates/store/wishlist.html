@@ -76,7 +76,15 @@
                         <img src="{{ item.product.product_images.first.image.url }}" class="card-img-top wshimg" alt="{{ item.product.title }}">
                         <div class="card-body">
                             <h5 class="card-title">{{ item.product.product_name }}</h5>
-                            <p class="card-text">Price: {{ item.product.price }}</p>
+                            <figcaption class="info-wrap">
+                                <a href="{{ product.get_url }}" class="title">{{ product.product_name }}</a>
+                                <del class="price-old">${{item.product.price }}</del>
+                                <span class="price-discount">${{ item.product.price_after_discount }}</span>
+                                <br>
+                                {% if item.product.discount_percentage > 0 %}
+                                <span class="discount-label" style="color: red;">GET({{ item.product.discount_percentage }}% off)</span>
+                                {% endif %}
+                            </figcaption>
                             <form action="{% url 'remove_wishlist' item.id %}" method="post">
                             {% csrf_token %}
                                 <button type="submit" class="btn btn-danger">Remove</button>

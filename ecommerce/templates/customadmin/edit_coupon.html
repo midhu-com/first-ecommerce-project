@@ -2,22 +2,49 @@
 
 {% block content %}
 {% include 'alert.html' %}
-  <h2 class="mb-4">Edit Coupon - {{ coupon.code }}</h2>
-  <div class="table-responsive">
-    <form method="post" action="{% url 'edit_coupon' coupon.id %}">
-      {% csrf_token %}
-      <table class="table table-bordered">
-        <tbody>
-          {% for field in form %}
-            <tr>
-              <td>{{ field.label_tag }}</td>
-              <td>{{ field }}</td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      <button type="submit" class="btn btn-primary">Update Coupon</button>
-    </form>
-  </div>
-  <a href="{% url 'coupons' %}" class="btn btn-secondary mt-3">Back to Coupon List</a>
+<h2 class="mb-4">Edit Coupon - {{ coupon.code }}</h2>
+<div class="table-responsive">
+  <form method="post" action="{% url 'edit_coupon' coupon.id %}">
+    {% csrf_token %}
+    <table class="table table-bordered">
+      <tbody>
+        {% for field in form %}
+          <tr>
+            <td>{{ field.label_tag }}</td>
+            <td>
+              {% if field.name in "valid_from,valid_to" %}
+              <div class="input-group date" id="{{ field.name }}_picker" data-provide="datepicker">
+                {{ field }}
+                <div class="input-group-append">
+                  <span class="input-group-text"><i class="fa fa-calendar"></i></span>
+                </div>
+              </div>
+              {% else %}
+              {{ field }}
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <button type="submit" class="btn btn-primary">Update Coupon</button>
+  </form>
+</div>
+<a href="{% url 'coupons' %}" class="btn btn-secondary mt-3">Back to Coupon List</a>
+
+<!-- Initialize date pickers -->
+<script type="text/javascript">
+  $(document).ready(function(){
+    $('#valid_from_picker').datepicker({
+      format: 'yyyy-mm-dd',
+      autoclose: true,
+      todayHighlight: true
+    });
+    $('#valid_to_picker').datepicker({
+      format: 'yyyy-mm-dd',
+      autoclose: true,
+      todayHighlight: true
+    });
+  });
+</script>
 {% endblock %}
