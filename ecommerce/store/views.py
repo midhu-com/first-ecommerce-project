@@ -8,7 +8,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from .forms import ReviewForm
 from django.contrib import messages
-from orders.models import OrderProduct
+from orders.models import OrderProduct,ProductOffers,CategoryOffers
 from carts.models import wishlist
 from store.models import Product
 
@@ -43,9 +43,27 @@ def store(request,category_slug=None):
 
 # product desccription 
 def product_detail(request,category_slug,product_slug):
-    disc_price = 0  # Initialize disc_price with a default value
+   
     try:
+        
         single_product=Product.objects.get(category__slug=category_slug,slug=product_slug)
+
+        product_offer = ProductOffers.objects.filter(product=single_product).first()
+        category_offer = CategoryOffers.objects.filter(category=single_product.category).first()
+
+        product_discount_amount = (single_product.price * product_offer.discount_percentage) / 100 if product_offer else 0
+        category_discount_amount = (single_product.price * category_offer.discount_percentage) / 100 if category_offer else 0
+
+        if product_discount_amount >= category_discount_amount:
+            highest_discount_amount = product_discount_amount
+            highest_offer = product_offer
+        else:
+            highest_discount_amount = category_discount_amount
+            highest_offer = category_offer
+
+        disc_price = single_product.price - highest_discount_amount
+
+
         product_images = single_product.product_images.all()  # Assuming you have a related name 'images' for the image field
         in_cart=Cartitem.objects.filter(cart__cart_id=_cart_id(request),product=single_product).exists()
         if request.user.is_authenticated:
@@ -56,6 +74,7 @@ def product_detail(request,category_slug,product_slug):
     except Product.DoesNotExist:
         raise Http404("Product does not exist")
     orderproduct = None
+   
     if request.user.is_authenticated:
 
         try:
@@ -76,6 +95,11 @@ def product_detail(request,category_slug,product_slug):
         'orderproduct':orderproduct,
         'reviews':reviews,
         'in_wishlist':in_wishlist, #success_message ':success_message ,
+        'disc_price':disc_price,
+        'highest_offer': highest_offer,
+        'highest_discount_amount': highest_discount_amount,
+        'product_discount_amount': product_discount_amount,
+        'category_discount_amount': category_discount_amount,
         
     }
    

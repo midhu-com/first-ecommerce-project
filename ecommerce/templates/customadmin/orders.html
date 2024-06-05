@@ -57,14 +57,13 @@
                         
                         
                         <a href="{% url 'orders' %}" class="btn btn-sm btn-outline-secondary">Back to Order List</a>
-                    </td>
-                    <td>
                         {% if order.order_number %}
                             <a href="{% url 'invoice' order.id %}" class="btn btn-sm btn-outline-primary">View Invoice</a>
                         {% else %}
                             <span class="text-muted">No order number available</span>
                         {% endif %}
                     </td>
+                    
                 </tr>
                 {% endfor %}
             </tbody>

@@ -143,15 +143,6 @@ def user_login(request):
 
 # dashboard is only access when logged in
 
-@login_required(login_url='login')
-def dashboard(request):
-    orders=Order.objects.order_by('-created_at').filter(user_id=request.user.id,is_ordered=True)
-    orders_count=orders.count()
-    context={
-        'orders_count':orders_count,
-    }
-    return render(request, 'accounts/dashboard.html',context)
-
 
 def activate_account(request,uidb64,token):
     try:
@@ -238,13 +229,36 @@ def My_Orders(request):
     }
     return render(request,'accounts/my_orders.html',context)
 
-@login_required
-def coupon_list(request):
-    coupons=Coupon.objects.all()
+
+@login_required(login_url='login')
+def dashboard(request):
+    user_profile = get_object_or_404(UserProfile, user=request.user)
+    orders=Order.objects.order_by('-created_at').filter(user_id=request.user.id,is_ordered=True)
+    orders_count=orders.count()
     context={
-        'coupons': coupons,
+        'orders_count':orders_count,
+        'user_profile':user_profile,
     }
-    return render(request,'accounts/coupon_list.html',context)
+    return render(request, 'accounts/dashboard.html',context)
+
+
+
+
+# user profile details
+@login_required
+def Profile(request):
+    # Get the UserProfile instance for the current user
+    userprofile = get_object_or_404(UserProfile, user=request.user)
+    address=Address.objects.filter(user=request.user)
+    
+    
+    context = {
+        
+        'user_profile':userprofile,
+        'address':address,
+    }
+    return render(request, 'accounts/profile.html', context)
+
 
 
 #edit the user profile details
@@ -279,6 +293,16 @@ def Edit_profile(request):
         'user_profile':userprofile,
     }
     return render(request, 'accounts/edit_profile.html', context)
+
+
+@login_required
+def coupon_list(request):
+    coupons=Coupon.objects.all()
+    context={
+        'coupons': coupons,
+    }
+    return render(request,'accounts/coupon_list.html',context)
+
 
 # generate invoice when click on order number at my order
 
@@ -322,20 +346,6 @@ def Order_detail(request,order_id):
     return render(request,'accounts/order_detail.html',context)
 
 
-# user profile details
-@login_required
-def Profile(request):
-    # Get the UserProfile instance for the current user
-    userprofile = get_object_or_404(UserProfile, user=request.user)
-    address=Address.objects.filter(user=request.user)
-    print("user profile",userprofile)
-    
-    context = {
-        
-        'user_profile':userprofile,
-        'address':address,
-    }
-    return render(request, 'accounts/profile.html', context)
 
 
 #Add new address/edit/delete/view.py
@@ -355,6 +365,7 @@ def AddAddress(request):
 
     context={
         'address_form':address_form,
+        
     }
     return render(request, 'accounts/add_address.html', context)
 

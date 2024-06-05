@@ -35,6 +35,18 @@ import json
 logging.basicConfig(level=logging.INFO)  # Set the logging level as per your requirement
 logger = logging.getLogger(__name__)
 
+def superuser_required(view_func):
+    """
+    Decorator for views that checks if the user is a superadmin,
+    redirects to the login page if not.
+    """
+    def _wrapped_view(request, *args, **kwargs):
+        if request.user.is_authenticated and request.user.is_superadmin:  # Custom attribute
+            return view_func(request, *args, **kwargs)
+        else:
+            return redirect('login')  # Redirect to the login page or any other page
+    return _wrapped_view
+
 @never_cache
 @login_required(login_url='login')
 def admin_view(request):
@@ -163,8 +175,9 @@ def category_view(request):
     return render(request,'customadmin/categories.html',context)
 
 # To display the order details
-@never_cache
-@login_required(login_url='login')  
+
+
+@login_required(login_url='login') 
 def Orders_view(request):
     # Query all registered users
     orders_list = Order.objects.all().order_by('-created_at')
@@ -180,6 +193,7 @@ def Orders_view(request):
 
 # To display the coupon details
 @never_cache
+@login_required(login_url='login')
 def Coupon_view(request):
     # Query all listed categories
     coupon_list = Coupon.objects.all()
@@ -194,6 +208,7 @@ def Coupon_view(request):
 
 #add new category
 @never_cache
+@login_required(login_url='login')
 def add_category(request):
     if request.method == 'POST':
         form = CategoryForm(request.POST,request.FILES)
@@ -204,17 +219,7 @@ def add_category(request):
         form = CategoryForm()
     return render(request, 'customadmin/add_category.html', {'form': form})
 
-def superuser_required(view_func):
-    """
-    Decorator for views that checks if the user is a superadmin,
-    redirects to the login page if not.
-    """
-    def _wrapped_view(request, *args, **kwargs):
-        if request.user.is_authenticated and request.user.is_superadmin:  # Custom attribute
-            return view_func(request, *args, **kwargs)
-        else:
-            return redirect('login')  # Redirect to the login page or any other page
-    return _wrapped_view
+
         
 #logout view
 
@@ -252,6 +257,7 @@ def unblock_user(request, user_id):
 
 # add  new product details 
 @never_cache
+@login_required(login_url='login')
 def add_product(request):
     productform=ProductForm()
     imageform=ProductImageForm()
@@ -293,7 +299,7 @@ def delete_product(request,product_id):
 
     return redirect('products')
 @never_cache
-@login_required
+
 def restore_product(request,product_id):
     if request.method == 'POST':
         product=get_object_or_404(Product,id=product_id)
@@ -305,13 +311,14 @@ def restore_product(request,product_id):
 
     return redirect('products')
     
-@never_cache   
+@never_cache  
+@login_required(login_url='login') 
 def edit_product(request, product_id):
 
     product = get_object_or_404(Product, id=product_id)
     product_form = ProductForm(request.POST, instance=product)
     image_form = ProductImageForm(request.POST,request.FILES)
-
+    
     if request.method == 'POST':
         
         product_form = ProductForm(request.POST, instance=product)
@@ -333,7 +340,7 @@ def edit_product(request, product_id):
         else:
             # Log the form errors
            
-            logger.error(product_form.errors)  # You need to define the logger variable
+            #logger.error(product_form.errors)  # You need to define the logger variable
             messages.error(request, "Form contains errors. Please correct them.")
     else:
         product_form = ProductForm(instance=product)
@@ -371,6 +378,7 @@ def restore_category(request, category_id):
 
 
 @never_cache
+@login_required(login_url='login')
 def edit_category(request, category_id):
     category = get_object_or_404(Category, id=category_id)
 
@@ -390,6 +398,7 @@ def edit_category(request, category_id):
 
 # coupon logic is here to create new coupons add & delete coupons
 @ never_cache
+@login_required(login_url='login')
 def add_coupon(request):
     if request.method == 'POST':
         form = CouponForm(request.POST)
@@ -407,6 +416,7 @@ def add_coupon(request):
     return render(request,'customadmin/add_coupon.html',{'form':form})
 
 @never_cache
+@login_required(login_url='login')
 def edit_coupon(request, coupon_id):
     coupon = get_object_or_404(Coupon, id=coupon_id)
     if request.method == 'POST':
@@ -525,7 +535,7 @@ def generate_sales_report_data(period, start_date=None, end_date=None):
     }
 
 
-
+@login_required(login_url='login')
 def sales_report(request, period=None):
     if request.method == 'POST':
         period = request.POST.get('period')
@@ -640,7 +650,17 @@ def admin_cancel_order(request, order_number):
 
     return redirect('orders')
 
+@never_cache
+@login_required(login_url='login')
+def admin_return_order(request, order_number):
+    order = get_object_or_404(Order, order_number=order_number)
 
+    if order.return_order():    
+        messages.success(request, f"Order #{order.order_number} has been returned")
+    else:
+        messages.error(request, f"Unable to return order #{order.order_number}")
+
+    return redirect('orders')
 
 @never_cache
 @login_required(login_url='login')
@@ -671,6 +691,7 @@ def admin_deliver_order(request, order_number):
 
 # productoffer module create,edit  & delete
 @never_cache
+@login_required(login_url='login')
 def product_offer_create(request):
     if request.method == 'POST':
         form = ProductOfferForm(request.POST)
@@ -682,6 +703,7 @@ def product_offer_create(request):
     return render(request, 'customadmin/product_offer_create.html', {'form': form})
 
 @never_cache
+@login_required(login_url='login')
 def product_offer_edit(request, pk):
     offer = get_object_or_404(ProductOffers, pk=pk)
     if request.method == 'POST':
@@ -702,6 +724,7 @@ def product_offer_delete(request, pk):
 
 #category offer create,edit & delete.
 @ never_cache
+@login_required(login_url='login')
 def category_offer_create(request):
     if request.method == 'POST':
         form = CategoryOfferForm(request.POST)
@@ -713,6 +736,7 @@ def category_offer_create(request):
     return render(request, 'customadmin/category_offer_create.html', {'form': form})
 
 @never_cache
+@login_required(login_url='login')
 def category_offer_edit(request, pk):
     offer = get_object_or_404(CategoryOffers, pk=pk)
     if request.method == 'POST':
@@ -732,12 +756,14 @@ def category_offer_delete(request, pk):
 
 # list the product and category offer details
 @never_cache
+@login_required(login_url='login')
 def list_product_offers(request):
     # Retrieve all product offers from the database
     product_offers = ProductOffers.objects.all()
     return render(request, 'customadmin/product_offers_list.html', {'product_offers': product_offers})
 
 @never_cache
+@login_required(login_url='login')
 def list_category_offers(request):
     # Retrieve all category offers from the database
     category_offers = CategoryOffers.objects.all()

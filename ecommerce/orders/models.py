@@ -140,11 +140,11 @@ class Order(models.Model):
 
     def return_order(self):
         # Method to return the order
-        if self.status == 'Delivered':
+        if self.status.lower() == 'Delivered':
             # Restock products
             for item in self.items.all():
-                item.size.stock += item.quantity
-                item.size.save()
+                item.quantity += item.quantity
+                item.save()
 
             self.status = 'Refunded'
             self.save()
@@ -215,11 +215,16 @@ class Coupon(models.Model):
     maximum_discount_amount = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
 
     def is_valid(self): 
-        now =  timezone.now()
-        return self.valid_from <= now <=self.valid_to
+        now = timezone.now()
+        return self.valid_from <= now <= self.valid_to
+
     def clean(self):
-        if self.valid_to and self.valid_to < timezone.now():
+        now = timezone.now()
+        if self.valid_to and self.valid_to < now:
             raise ValidationError("Valid to date cannot be in the past.")
+        if self.valid_from and self.valid_to and self.valid_from > self.valid_to:
+            raise ValidationError("Valid from date cannot be later than valid to date.")
+        super().clean()
     
 class Wallet(models.Model):
     user = models.OneToOneField(Account,on_delete=models.CASCADE)
@@ -238,7 +243,9 @@ class ProductOffers(models.Model):
     def clean(self):
         if self.start_date > self.end_date:
             raise ValidationError("Start date cannot be after end date.")
-
+        
+    
+    
 class CategoryOffers(models.Model):
     category = models.OneToOneField(Category, on_delete=models.CASCADE, related_name='offer')
     name = models.CharField(max_length=100, default="Default Offer Name")  # Provide a default value
@@ -249,7 +256,8 @@ class CategoryOffers(models.Model):
     def clean(self):
         if self.start_date > self.end_date:
             raise ValidationError("Start date cannot be after end date.")
-
+        
+    
     
 
         

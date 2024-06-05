@@ -1,5 +1,5 @@
 /* hide radio buttons */
-.rate > input {
+.rate > input[type="radio"]  {
     display: none;
 }
 

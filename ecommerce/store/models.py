@@ -4,13 +4,14 @@ from django.urls import reverse
 from accounts.models import Account
 from django.core.validators import MinValueValidator, MaxValueValidator
 from datetime import date
+from django.db.models import Avg,Count
 
 # Create your models here.
 class Product(models.Model):
     product_name=models.CharField(max_length=100,unique=True)
     slug=models.SlugField(max_length=100,unique=True)
     description=models.TextField(max_length=100,blank=True)
-    price=models.IntegerField()
+    price=models.DecimalField(max_digits=10,decimal_places=2)
     images=models.ImageField(upload_to='photos/products')
     stock=models.IntegerField()
     is_available=models.BooleanField(default=True)
@@ -25,6 +26,20 @@ class Product(models.Model):
 
     def get_url(self):
         return reverse('product_detail',args=[self.category.slug,self.slug])
+    
+    def averagereview(self):
+        reviews = ReviewRating.objects.filter(product=self,status=True).aggregate(average=Avg('rating'))
+        avg = 0
+        if reviews['average'] is not None:
+            avg = float(reviews['average'])
+        return avg
+    
+    def countreview(self):
+        reviews = ReviewRating.objects.filter(product=self,status=True).aggregate(count=Count('id'))
+        count =  0   
+        if reviews['count'] is not None:
+            count = float(reviews['count'])
+        return count
 
     def __str__(self):
         return self.product_name

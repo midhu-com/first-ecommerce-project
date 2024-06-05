@@ -35,7 +35,9 @@
             {% for offer in product_offers %}
                 <li class="offer-item">
                     <strong>{{ offer.product }}</strong> - 
-                    <strong>{{ offer.name }}</strong> - {{ offer.discount_percentage }}% Discount
+
+                    <strong>{{ offer.name }}</strong> - {{ offer.discount_percentage }}% Discount 
+                    <strong>Starts from {{ offer.start_date }}</strong> to <strong>{{ offer.end_date }}</strong>
                     <div>
                         <a href="{% url 'product_offer_edit' offer.id %}" class="btn btn-sm btn-info">Edit</a>
                         <a href="{% url 'product_offer_delete' offer.id %}" class="btn btn-sm btn-danger">Delete</a>

@@ -33,6 +33,7 @@ urlpatterns=[
     path('admin_cancel_order/<int:order_number>/', views.admin_cancel_order, name='admin_cancel_order'),
     path('admin_ship_order/<int:order_number>/', views.admin_ship_order, name='admin_ship_order'),
     path('admin_deliver_order/<int:order_number>/', views.admin_deliver_order, name='admin_deliver_order'),
+     path('admin_return_order/<int:order_number>/', views.admin_return_order, name='admin_return_order'),
 
 
 

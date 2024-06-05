@@ -1,6 +1,9 @@
 {% extends 'base.html' %}
 {% load static %}
 {% block content %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/magnific-popup.js/1.1.0/jquery.magnific-popup.min.js"></script>
+<script src="https://unpkg.com/medium-zoom/dist/medium-zoom.min.js"></script>
 <section class="section-content padding-y bg">
     <div class="container">
         <!-- Breadcrumb Begin -->
@@ -13,7 +16,7 @@
                             <span class="mx-2">|</span>
                             <a href="{% url 'store' %}">All Products</a>
                             <span class="mx-2">|</span>
-                            <span>{{ single_product.product_name }}</span>
+                            <span>{{ single_product.product_name }}</span>  
                         </div>
                     </div>
                 </div>
@@ -47,14 +50,25 @@
                 <div class="col-md-6">
                     <div class="product-details">
                         <h2 class="title">{{ single_product.product_name }}</h2>
+                        <div class="rating-star">
+                            <span>
+                                <i class="fa fa-star {% if single_product.averagereview < 0.5  %}-o{% elif single_product.averagereview >= 0.5 and single_product.averagereview < 1 %}-half-o{% endif %}" aria-hidden="true"></i>
+                                <i class="fa fa-star {% if single_product.averagereview < 1.5  %}-o{% elif single_product.averagereview >= 1.5 and single_product.averagereview < 2 %}-half-o{% endif %}" aria-hidden="true"></i>
+                                <i class="fa fa-star {% if single_product.averagereview < 2.5  %}-o{% elif single_product.averagereview >= 2.5 and single_product.averagereview < 3 %}-half-o{% endif %}" aria-hidden="true"></i>
+                                <i class="fa fa-star {% if single_product.averagereview < 3.5  %}-o{% elif single_product.averagereview >= 1.5 and single_product.averagereview < 4 %}-half-o{% endif %}" aria-hidden="true"></i>
+                                <i class="fa fa-star {% if single_product.averagereview < 4.5  %}-o{% elif single_product.averagereview >= 1.5 and single_product.averagereview < 5 %}-half-o{% endif %}" aria-hidden="true"></i>
+                                <span>{{single_product.countreview|floatformat:0}}   Reviews</span>
+                            </span>
+                        </div>
+                        
                         <p class="text-muted">{{ single_product.description }}</p>
                         <div class="mb-3">
-                            <h4 class="price">${{ single_product.price_after_discount }}</h4>
-                            {% if single_product.discount_percentage > 0 %}
-                                <p><span class="badge badge-success">{{ single_product.discount_percentage }}% off</span></p>
-                                <p>Base Price: <del>${{ single_product.price }}</del></p>
+                            <h4 class="price">Rs.{{ disc_price }}</h4>
+                            {% if highest_offer %}
+                                <p><span class="badge badge-success">{{ highest_offer.discount_percentage }}% off</span></p>
+                                <p>Base Price: <del>Rs.{{ single_product.price }}</del></p>
                             {% else %}
-                                <p>No product offers</p>
+                                <p>No offers available</p>
                             {% endif %}
                         </div>
                         <form action="{% url 'add_cart' single_product.id %}" method="POST">
@@ -95,6 +109,31 @@
                                 </button>
                             {% endif %}
                         </form>
+                            <br><br>
+                            <div class="mb-3">
+                                <p>100% Original Products</p>
+                                <p>Pay on Delivery might be available</p>
+                            </div>
+                            <div class="mb-3">
+                                <h3>BEST OFFERS</h3>
+                                <p>Product offers:</p>
+                                <ul id="product-offers">
+                                    {% if single_product.offer %}
+                                        <li> {{ single_product.offer.discount_percentage }}% off (Your total savings Rs.{{product_discount_amount}})</li>
+                                    {% else %}
+                                        <li>No product-specific offers available.</li>
+                                    {% endif %}
+                                </ul>
+                                <p>Category offers:</p>
+                                <ul id="category-offers">
+                                    {% if single_product.category.offer %}
+                                        <li> {{ single_product.category.offer.discount_percentage  }}% off (Your total savings Rs.{{category_discount_amount}})</li>
+                                    {% else %}
+                                        <li>No category-specific offers available.</li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </div>
                     </div> <!-- product-details.// -->
                 </div> <!-- col.// -->
             </div> <!-- row.// -->
@@ -110,6 +149,7 @@
                     {% csrf_token %}
                     <br>
                     <h5>Write your Review</h5>
+
                     <div>
                         <!--rating stars-->
                         <label>How do you rate this product?</label>
@@ -149,6 +189,16 @@
         <br>
         <header class="section-heading">
             <h3>Customer Reviews </h3>  
+            <div class="rating-star">
+                <span>
+                    <i class="fa fa-star {% if single_product.averagereview < 0.5  %}-o{% elif single_product.averagereview >= 0.5 and single_product.averagereview < 1 %}-half-o{% endif %}" aria-hidden="true"></i>
+                    <i class="fa fa-star {% if single_product.averagereview < 1.5  %}-o{% elif single_product.averagereview >= 1.5 and single_product.averagereview < 2 %}-half-o{% endif %}" aria-hidden="true"></i>
+                    <i class="fa fa-star {% if single_product.averagereview < 2.5  %}-o{% elif single_product.averagereview >= 2.5 and single_product.averagereview < 3 %}-half-o{% endif %}" aria-hidden="true"></i>
+                    <i class="fa fa-star {% if single_product.averagereview < 3.5  %}-o{% elif single_product.averagereview >= 1.5 and single_product.averagereview < 4 %}-half-o{% endif %}" aria-hidden="true"></i>
+                    <i class="fa fa-star {% if single_product.averagereview < 4.5  %}-o{% elif single_product.averagereview >= 1.5 and single_product.averagereview < 5 %}-half-o{% endif %}" aria-hidden="true"></i>
+                    <span>{{single_product.countreview|floatformat:0}}   Reviews</span>
+                </span>
+            </div>
          </header>
         {% for review in reviews %}
                
@@ -189,9 +239,7 @@
     </div> <!-- container .//  -->
     </section>
     <!-- ========================= SECTION CONTENT END// ========================= -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/magnific-popup.js/1.1.0/jquery.magnific-popup.min.js"></script>
-    <script src="https://unpkg.com/medium-zoom/dist/medium-zoom.min.js"></script>
+    
     <!-- Initialize medium-zoom for images -->
     <script>
     mediumZoom('.magnify', {

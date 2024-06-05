@@ -89,17 +89,17 @@
                 <tr>
                     <td>{{ item.product.product_name }}</td>
                     <td>{{ item.quantity }}</td>
-                    <td>{{ item.product_price }} </td>
-                    <td>{{ subtotal}} </td>
+                    <td>₹{{ item.product_price }} </td>
+                    <td>₹{{ subtotal}} </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
         <div class="invoice-totals">
-            <p><strong>Sub Total:</strong> <span class="text-right">{{ subtotal }} </span></p>
-            <p><strong>Tax:</strong> <span class="text-right">{{ order.tax }} </span></p>
-            <p><strong>Discount:</strong> <span class="text-right">{{ coupon_discount }} </span></p>
-            <p><strong>Grand Total:</strong> <span class="text-right">{{ order.final_total }} </span></p>
+            <p><strong>Sub Total:</strong> <span class="text-right">₹{{ subtotal }} </span></p>
+            <p><strong>Tax:</strong> <span class="text-right">₹{{ order.tax }} </span></p>
+            <p><strong>Discount:</strong> <span class="text-right">₹{{ coupon_discount }} </span></p>
+            <p><strong>Grand Total:</strong> <span class="text-right">₹{{ order.final_total }} </span></p>
         </div>
     </div>
 </body>

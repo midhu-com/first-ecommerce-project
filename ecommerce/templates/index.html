@@ -25,7 +25,7 @@
 <link href="{% static 'css/ui.css' %}" rel="stylesheet" type="text/css"/>
 <link href="{% static 'css/responsive.css' %}" rel="stylesheet" media="only screen and (max-width: 1200px)" />
 
-<link href="{% static 'css/custom.css' %}" rel="stylesheet" type="text/css"/>
+
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 
 <!-- custom javascript -->
@@ -185,7 +185,17 @@ $(document).ready(function() {
             </a>
             <figcaption class="info-wrap">
                 <a href="{{ product.get_url }}" class="title">{{ product.product_name }}</a>
-				{% if product.discount_percentage > 0 %}
+				<!--<div class="rating-star">
+					<span>
+						<i class="fa fa-star {% if product.averagereview < 0.5  %}-o{% elif product.averagereview >= 0.5 and product.averagereview < 1 %}-half-o{% endif %}" aria-hidden="true"></i>
+						<i class="fa fa-star {% if product.averagereview < 1.5  %}-o{% elif product.averagereview >= 1.5 and product.averagereview < 2 %}-half-o{% endif %}" aria-hidden="true"></i>
+						<i class="fa fa-star {% if product.averagereview < 2.5  %}-o{% elif product.averagereview >= 2.5 and product.averagereview < 3 %}-half-o{% endif %}" aria-hidden="true"></i>
+						<i class="fa fa-star {% if product.averagereview < 3.5  %}-o{% elif product.averagereview >= 1.5 and product.averagereview < 4 %}-half-o{% endif %}" aria-hidden="true"></i>
+						<i class="fa fa-star {% if product.averagereview < 4.5  %}-o{% elif product.averagereview >= 1.5 and product.averagereview < 5 %}-half-o{% endif %}" aria-hidden="true"></i>
+						<span>
+					</span>
+				</div>-->
+				{% if product.offer.discount_percentage > 0 %}
 				<span class="price-discount">Rs.{{ product.price_after_discount|floatformat:0 }}</span>
 				<del class="price-old">Rs.{{ product.price }}</del>
 				<br>
