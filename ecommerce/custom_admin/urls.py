@@ -16,6 +16,7 @@ urlpatterns=[
     path('block/<int:user_id>/', views.block_user, name='block_user'),
     path('unblock/<int:user_id>/', views.unblock_user, name='unblock_user'),
     
+    path('add_variation/<int:product_id>',views.add_variation, name='add_variation'),
     path('delete_product/<int:product_id>/', views.delete_product, name='delete_product'),
     path('restore_product/<int:product_id>/', views.restore_product, name='restore_product'),
     path('edit_product/<int:product_id>/', views.edit_product, name='edit_product'),

@@ -62,8 +62,8 @@ class Order(models.Model):
     last_name=models.CharField(max_length=50)
     phone=models.CharField(max_length=15)
     email=models.EmailField(max_length=50)
-    address_line_1=models.CharField(max_length=20)
-    address_line_2=models.CharField(max_length=20,blank=True)
+    address_line_1=models.CharField(max_length=100)
+    address_line_2=models.CharField(max_length=100,blank=True)
     country=models.CharField(max_length=20)
     state=models.CharField(max_length=20)
     city=models.CharField(max_length=20)
@@ -96,7 +96,7 @@ class Order(models.Model):
     
     def cancel_order(self):
         # Method to cancel the order
-        if self.status.lower() == 'processing':
+        if self.status.lower() in ['processing', 'shipped']:
             # Restock products
             for item in self.items.all():
                 item.quantity += item.quantity
@@ -140,7 +140,7 @@ class Order(models.Model):
 
     def return_order(self):
         # Method to return the order
-        if self.status.lower() == 'Delivered':
+        if self.status.lower() == 'delivered':
             # Restock products
             for item in self.items.all():
                 item.quantity += item.quantity

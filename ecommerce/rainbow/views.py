@@ -13,7 +13,7 @@ def index(request):
 
     context={
         'products':products,
-        'reviews':reviews,
+        
 
     }
     return render(request,'index.html',context)

@@ -232,7 +232,9 @@ def My_Orders(request):
 
 @login_required(login_url='login')
 def dashboard(request):
-    user_profile = get_object_or_404(UserProfile, user=request.user)
+    #user_profile = get_object_or_404(UserProfile, user=request.user)
+    user_profile, created = UserProfile.objects.get_or_create(user=request.user)
+        
     orders=Order.objects.order_by('-created_at').filter(user_id=request.user.id,is_ordered=True)
     orders_count=orders.count()
     context={

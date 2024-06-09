@@ -8,6 +8,7 @@
         <div class="col">
             <h2>Products</h2>
             <a href="{% url 'add_product' %}"><button> Add products</button></a>
+           
             <table class="table">
                 <thead>
                     <tr>
@@ -40,6 +41,7 @@
                             <!-- Add edit and delete actions -->
 
                             <a href="{% url 'edit_product' product.id %}" class="btn btn-primary">Edit</a>
+                            <!--<a href="{% url 'add_variation' product.id %}" class="btn btn-secondary">Add Variations</a>-->
                             {% if product.is_available %}
                                 <form action="{% url 'delete_product' product.id %}" method="post" style="display: inline;">
                                 {% csrf_token %}

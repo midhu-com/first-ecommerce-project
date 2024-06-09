@@ -3,7 +3,7 @@ from django.contrib import messages
 from accounts.models import Account
 from category.models import Category
 from store.models import Product
-from store.models import Image
+from store.models import Image,Variation
 from .forms import ProductForm,ProductImageForm,CategoryForm,CouponForm
 from django.shortcuts import get_object_or_404
 import logging
@@ -12,7 +12,7 @@ from .forms import CategoryForm,CouponForm,ProductOfferForm,CategoryOfferForm
 from orders.models import Order,OrderProduct,Payment
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages, auth
-from orders.forms import CouponForm
+from orders.forms import CouponForm,VariationForm
 from orders.models import Coupon,CategoryOffers,ProductOffers
 from datetime import datetime
 from django.http import HttpResponse
@@ -28,6 +28,8 @@ from django.views.decorators.cache import never_cache
 from django import forms    
 import calendar
 import json
+from django.forms import inlineformset_factory
+
 
 
 
@@ -49,91 +51,92 @@ def superuser_required(view_func):
 
 @never_cache
 @login_required(login_url='login')
+
 def admin_view(request):
     if not request.user.is_authenticated or not request.user.is_superuser:
         return redirect('login')
-
-    filter_period = 'monthly'
-    best_selling_products = Product.objects.annotate(total_quantity_sold=Sum('orderproduct__quantity')).exclude(total_quantity_sold=None).order_by('-total_quantity_sold')[:10]
-    best_selling_categories = Category.objects.annotate(total_quantity_sold=Sum('product__orderproduct__quantity')).exclude(total_quantity_sold=None).order_by('-total_quantity_sold')[:10]
-
-    if 'period' in request.GET:
-        filter_period = request.GET['period']
-
-    end_date = datetime.now().date()
-    if filter_period == 'weekly':
-        start_date = end_date - timedelta(days=7)
-    elif filter_period == 'monthly':
-        start_date = end_date.replace(day=1)
-    elif filter_period == 'yearly':
-        start_date = end_date.replace(day=1, month=1)
-
-    if filter_period == 'weekly':
-        date_range = [start_date + timedelta(days=i) for i in range(7)]
-    elif filter_period == 'monthly':
-        _, last_day = calendar.monthrange(start_date.year, start_date.month)
-        date_range = [start_date.replace(day=1) + timedelta(days=i) for i in range(last_day)]
-    elif filter_period == 'yearly':
-        date_range = [start_date.replace(month=i, day=1) for i in range(1, 13)]
-
-    orders = Order.objects.filter(created_at__range=[start_date, end_date])
-    droporders = Order.objects.filter(Q(status='Returned') | Q(status='Cancelled'), created_at__date__range=[start_date, end_date])
-    total_sales = orders.aggregate(total_sales=Sum('final_total'))['total_sales'] or 0
-    total_drop_sales = droporders.aggregate(total_drop_sales=Sum('final_total'))['total_drop_sales'] or 0
-    total_discount = orders.aggregate(total_discount=Sum('coupon_discount'))['total_discount'] or 0
-    total_coupons = orders.aggregate(total_coupons=Count('coupon'))['total_coupons'] or 0
-    net_sales = total_sales - total_coupons - total_drop_sales
-
-    sales_data = {date: sum(order.final_total if order.final_total is not None else 0 for order in orders if order.created_at.date() == date) for date in date_range}
-
-    monthly_total_sales = {}
-    monthly_total_count = {}
-    if filter_period == 'yearly':
-        for month in range(1, 13):
-            month_orders = [order for order in orders if order.created_at.month == month]
-            month_sales = sum(order.final_total if order.final_total is not None else 0 for order in month_orders)
-            month_count = sum(1 for order in month_orders)
-            monthly_total_sales[month] = month_sales
-            monthly_total_count[month] = month_count
-
-    sorted_sales_data = sorted(sales_data.items())
-    sorted_dates = [date.strftime('%Y-%m-%d') for date, _ in sorted_sales_data]
-    sorted_total_values = [value for _, value in sorted_sales_data]
-
-    if filter_period == 'yearly':
-        chart_data = {
-            'labels': list(monthly_total_sales.keys()),
-            'data': [str(value) for value in monthly_total_sales.values()]
-        }
     else:
-        chart_data = {
-            'labels': sorted_dates,
-            'data': [float(value) for value in sorted_total_values]  # Convert Decimal to float
+        filter_period = 'monthly'
+        best_selling_products = Product.objects.annotate(total_quantity_sold=Sum('orderproduct__quantity')).exclude(total_quantity_sold=None).order_by('-total_quantity_sold')[:10]
+        best_selling_categories = Category.objects.annotate(total_quantity_sold=Sum('product__orderproduct__quantity')).exclude(total_quantity_sold=None).order_by('-total_quantity_sold')[:10]
+
+        if 'period' in request.GET:
+            filter_period = request.GET['period']
+
+        end_date = datetime.now().date()
+        if filter_period == 'weekly':
+            start_date = end_date - timedelta(days=7)
+        elif filter_period == 'monthly':
+            start_date = end_date.replace(day=1)
+        elif filter_period == 'yearly':
+            start_date = end_date.replace(day=1, month=1)
+
+        if filter_period == 'weekly':
+            date_range = [start_date + timedelta(days=i) for i in range(7)]
+        elif filter_period == 'monthly':
+            _, last_day = calendar.monthrange(start_date.year, start_date.month)
+            date_range = [start_date.replace(day=1) + timedelta(days=i) for i in range(last_day)]
+        elif filter_period == 'yearly':
+            date_range = [start_date.replace(month=i, day=1) for i in range(1, 13)]
+
+        orders = Order.objects.filter(created_at__range=[start_date, end_date])
+        droporders = Order.objects.filter(Q(status='Returned') | Q(status='Cancelled'), created_at__date__range=[start_date, end_date])
+        total_sales = orders.aggregate(total_sales=Sum('final_total'))['total_sales'] or 0
+        total_drop_sales = droporders.aggregate(total_drop_sales=Sum('final_total'))['total_drop_sales'] or 0
+        total_discount = orders.aggregate(total_discount=Sum('coupon_discount'))['total_discount'] or 0
+        total_coupons = orders.aggregate(total_coupons=Count('coupon'))['total_coupons'] or 0
+        net_sales = total_sales - total_coupons - total_drop_sales
+
+        sales_data = {date: sum(order.final_total if order.final_total is not None else 0 for order in orders if order.created_at.date() == date) for date in date_range}
+
+        monthly_total_sales = {}
+        monthly_total_count = {}
+        if filter_period == 'yearly':
+            for month in range(1, 13):
+                month_orders = [order for order in orders if order.created_at.month == month]
+                month_sales = sum(order.final_total if order.final_total is not None else 0 for order in month_orders)
+                month_count = sum(1 for order in month_orders)
+                monthly_total_sales[month] = month_sales
+                monthly_total_count[month] = month_count
+
+        sorted_sales_data = sorted(sales_data.items())
+        sorted_dates = [date.strftime('%Y-%m-%d') for date, _ in sorted_sales_data]
+        sorted_total_values = [value for _, value in sorted_sales_data]
+
+        if filter_period == 'yearly':
+            chart_data = {
+                'labels': list(monthly_total_sales.keys()),
+                'data': [str(value) for value in monthly_total_sales.values()]
+            }
+        else:
+            chart_data = {
+                'labels': sorted_dates,
+                'data': [float(value) for value in sorted_total_values]  # Convert Decimal to float
         }
 
-    order_count_data = {date: sum(1 for order in orders if order.created_at.date() == date) for date in date_range}
-    sorted_order_count_data = sorted(order_count_data.items())
-    sorted_order_dates = [date.strftime('%Y-%m-%d') for date, _ in sorted_order_count_data]
-    sorted_order_counts = [count for _, count in sorted_order_count_data]
+        order_count_data = {date: sum(1 for order in orders if order.created_at.date() == date) for date in date_range}
+        sorted_order_count_data = sorted(order_count_data.items())
+        sorted_order_dates = [date.strftime('%Y-%m-%d') for date, _ in sorted_order_count_data]
+        sorted_order_counts = [count for _, count in sorted_order_count_data]
 
-    if filter_period == 'yearly':
-        orders_chart_data = {
-            'labels': list(monthly_total_count.keys()),
-            'data': list(monthly_total_count.values())
-        }
-    else:
-        orders_chart_data = {
-            'labels': sorted_order_dates,
-            'data':  [int(count) for count in sorted_order_counts]  # Convert Decimal to int if needed
-        }
+        if filter_period == 'yearly':
+            orders_chart_data = {
+                'labels': list(monthly_total_count.keys()),
+                'data': list(monthly_total_count.values())
+            }
+        else:
+            orders_chart_data = {
+                'labels': sorted_order_dates,
+                'data':  [int(count) for count in sorted_order_counts]  # Convert Decimal to int if needed
+            }
 
-    context = {
-        'chart_data': json.dumps(chart_data),
-        'orders_chart_data': json.dumps(orders_chart_data),
-        'filter_period': filter_period,
-        'best_selling_products': best_selling_products,
-        'best_selling_categories': best_selling_categories,
-    }
+        context = {
+            'chart_data': json.dumps(chart_data),
+                'orders_chart_data': json.dumps(orders_chart_data),
+            'filter_period': filter_period,
+            'best_selling_products': best_selling_products,
+            'best_selling_categories': best_selling_categories,
+        }
 
     return render(request, 'customadmin/custom_admin_home.html', context)
    
@@ -142,11 +145,14 @@ def admin_view(request):
 @never_cache  
 @login_required(login_url='login')                
 def user_view(request):
-    # Query all registered users
-    registered_users = Account.objects.all()
+    if not request.user.is_authenticated or not request.user.is_superuser:
+        return redirect('login')
+    else:
+        # Query all registered users
+        registered_users = Account.objects.all()
 
-    # Prepare user data to pass to the template
-    context={'registered_users':registered_users}
+        # Prepare user data to pass to the template
+        context={'registered_users':registered_users}
     
     return render(request,'customadmin/users.html', context)
 
@@ -154,11 +160,16 @@ def user_view(request):
 @never_cache
 @login_required(login_url='login')  
 def products_view(request):
-    # Query all listed products
-    product_list = Product.objects.all()
+    if request.user.is_superuser:
+       
+    
+        # Query all listed products
+        product_list = Product.objects.all()
 
-    # Prepare user data to pass to the template
-    context={'product_list':product_list}
+        # Prepare user data to pass to the template
+        context={'product_list':product_list}
+    else:
+        return redirect('login')
     
     return render(request,'customadmin/products.html',context)
 
@@ -166,11 +177,14 @@ def products_view(request):
 @never_cache
 @login_required(login_url='login')  
 def category_view(request):
-    # Query all listed categories
-    category_list = Category.objects.all()
+    if not request.user.is_authenticated or not request.user.is_superuser:
+        return redirect('login')
+    else:
+        # Query all listed categories
+        category_list = Category.objects.all()
 
-    # Prepare user data to pass to the template
-    context={'category_list':category_list}
+        # Prepare user data to pass to the template
+        context={'category_list':category_list}
     
     return render(request,'customadmin/categories.html',context)
 
@@ -179,15 +193,18 @@ def category_view(request):
 
 @login_required(login_url='login') 
 def Orders_view(request):
-    # Query all registered users
-    orders_list = Order.objects.all().order_by('-created_at')
-    payment = Payment.objects.all()
+    if not request.user.is_authenticated or not request.user.is_superuser:
+        return redirect('login')
+    else:
+        # Query all registered users
+        orders_list = Order.objects.all().order_by('-created_at')
+        payment = Payment.objects.all()
     
-    # Prepare user data to pass to the template
-    context={
-        'orders_list':orders_list,
-        'payment':payment,
-        }
+        # Prepare user data to pass to the template
+        context={
+            'orders_list':orders_list,
+            'payment':payment,
+            }
     
     return render(request,'customadmin/orders.html',context)
 
@@ -195,11 +212,14 @@ def Orders_view(request):
 @never_cache
 @login_required(login_url='login')
 def Coupon_view(request):
-    # Query all listed categories
-    coupon_list = Coupon.objects.all()
+    if not request.user.is_authenticated or not request.user.is_superuser:
+        return redirect('login')
+    else:
+        # Query all listed categories
+        coupon_list = Coupon.objects.all()
 
-    # Prepare user data to pass to the template
-    context={'coupon_list':coupon_list}
+        # Prepare user data to pass to the template
+        context={'coupon_list':coupon_list}
     
     return render(request,'customadmin/coupons.html',context)
 
@@ -255,7 +275,6 @@ def unblock_user(request, user_id):
         messages.error(request, f"{account.username} is already unblocked.")
     return redirect('admin_view')  # Redirect back to the custom admin page
 
-# add  new product details 
 @never_cache
 @login_required(login_url='login')
 def add_product(request):
@@ -283,7 +302,6 @@ def add_product(request):
     context={"form":productform,"form_image":imageform}
     return render(request, 'customadmin/add_product.html',context)
 
-
 # edit & delete product details
 
 @never_cache
@@ -307,9 +325,38 @@ def restore_product(request,product_id):
         product.is_available=True
         product.save()
         logger.info(f"Product {product_id} restored by user {request.user.id}")
-        return redirect('products')
+        return redirect('products')@never_cache
+    
 
-    return redirect('products')
+# add variations like color and size to products   
+@login_required(login_url='login')
+def add_variation(request, product_id):
+    product = get_object_or_404(Product, id=product_id)
+    VariationFormSet = inlineformset_factory(Product, Variation, form=VariationForm, extra=1, can_delete=True)
+
+    if request.method == 'POST':
+        formset = VariationFormSet(request.POST, instance=product)
+        if formset.is_valid():
+            formset.save()
+            messages.success(request, 'Variations added successfully')
+            return redirect('products')
+        else:
+            print(formset.errors)  # Print the formset errors to the console for debugging
+            for form in formset:
+                print(form.errors)  # Print the formset errors to the console for debugging
+            messages.error(request, 'Please correct the errors below!')
+    else:
+        formset = VariationFormSet(instance=product)
+    
+    context = {
+        'product': product,
+        'formset': formset,
+    }
+    return render(request, 'customadmin/add_variation.html', context)
+
+   
+
+
     
 @never_cache  
 @login_required(login_url='login') 
@@ -403,6 +450,7 @@ def add_coupon(request):
     if request.method == 'POST':
         form = CouponForm(request.POST)
         if form.is_valid():
+            print("Form data:", form.cleaned_data) 
             coupon = form.save(commit=False)
             coupon.save()
             messages.success(request,'Coupon created successfully')
@@ -527,6 +575,7 @@ def generate_sales_report_data(period, start_date=None, end_date=None):
         'start_date': start_date,
         'end_date': end_date,
         'total_sales': total_sales,
+        'total_drop_sales':total_drop_sales,
         'total_discount': total_discount,
         'total_sales_count': total_sales_count,
         'total_coupons': total_coupons,

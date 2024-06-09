@@ -63,7 +63,7 @@
                         
                         <p class="text-muted">{{ single_product.description }}</p>
                         <div class="mb-3">
-                            <h4 class="price">Rs.{{ disc_price }}</h4>
+                            <h4 class="price">Rs.{{ disc_price|floatformat:2 }}</h4>
                             {% if highest_offer %}
                                 <p><span class="badge badge-success">{{ highest_offer.discount_percentage }}% off</span></p>
                                 <p>Base Price: <del>Rs.{{ single_product.price }}</del></p>
@@ -119,7 +119,7 @@
                                 <p>Product offers:</p>
                                 <ul id="product-offers">
                                     {% if single_product.offer %}
-                                        <li> {{ single_product.offer.discount_percentage }}% off (Your total savings Rs.{{product_discount_amount}})</li>
+                                        <li> {{ single_product.offer.discount_percentage }}% off (Your total savings Rs.{{product_discount_amount|floatformat:0}})</li>
                                     {% else %}
                                         <li>No product-specific offers available.</li>
                                     {% endif %}

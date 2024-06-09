@@ -327,78 +327,6 @@ def Order_complete(request):
         redirect('home')
 
 
-@login_required(login_url='login')
-def cancell_order(request, order_number):
-    order = get_object_or_404(Order, order_number=order_number)
-    final_total = order.final_total
-
-    if order.cancel_order():
-        messages.success(request, f"Order #{order.order_number} has been canceled")
-    else:
-        messages.error(request, f"Unable to cancel order #{order.order_number}")
-
-    # Refund payment and update wallet balance
-    if order.payment and order.payment.payment_status == 'Completed':
-        # Retrieve the user's wallet if it exists, or create a new wallet if it doesn't exist
-        wallet, created = Wallet.objects.get_or_create(user=request.user)
-
-        # Update wallet balance
-        if created:
-            wallet.balance = final_total
-        else:
-            wallet.balance += final_total
-        wallet.save()
-
-        # Update payment status to 'Refunded'
-        order.payment_status = 'Refunded'
-        
-        order.payment.save()
-
-
-    return redirect('my_orders')
-
-@login_required(login_url='login')
-def order_return(request, order_number):
-    order = get_object_or_404(Order, order_number=order_number)
-    final_total = order.final_total
-
-    if order.return_order():
-        messages.success(request, f"Order #{order.order_number} has been returned")
-       
-    else:
-        messages.error(request, f"Unable to return order #{order.order_number}")
-
-    # Refund payment and update wallet balance
-    if order.payment and order.payment.payment_status == 'Completed':
-        # Retrieve the user's wallet if it exists, or create a new wallet if it doesn't exist
-        wallet, created = Wallet.objects.get_or_create(user=request.user)
-
-        # Update wallet balance
-        if created:
-            wallet.balance = final_total
-        else:
-            wallet.balance += final_total
-        wallet.save()
-
-        # Update payment status to 'Refunded'
-        order.payment_status = 'Refunded'
-        
-        order.payment.save()
-        
-
-    return redirect('my_orders')
-
-
-def create_coupon(request):
-    if request.method == 'POST':
-        form = CouponForm(request.POST)
-        if form.is_valid():
-            form.save()
-            return redirect('coupon_list') # shows the list of coupons
-    else:
-        form = CouponForm()
-    return render(request, 'create_coupon.html', {'form': form})
-
 @login_required
 def add_to_wallet(request, order_number):
     try:
@@ -511,8 +439,86 @@ def generate_invoice_pdf(request, order_id):
     
     return response
 
+
+
 @login_required(login_url='login')
-def wallet_data(request):
+def order_cancel(request, order_number):
+    order = get_object_or_404(Order, order_number=order_number)
+
+    final_total = order.final_total
+
+    if order.cancel_order():
+        messages.success(request, f"Order #{order.order_number} has been canceled")
+    else:
+        messages.error(request, f"Unable to cancel order #{order.order_number}")
+
+    # Refund payment and update wallet balance
+    if order.payment and order.payment.payment_status == Payment.COMPLETED:
+        # Retrieve the user's wallet if it exists, or create a new wallet if it doesn't exist
+        wallet, created = Wallet.objects.get_or_create(user=request.user)
+
+        # Update wallet balance
+        wallet.balance += final_total
+        wallet.save()
+
+        print("wallet balance:", wallet.balance)
+
+        # Update payment status to 'Refunded'
+        order.payment.payment_status = Payment.REFUNDED
+        
+        order.payment.save()
+
+    return redirect('my_orders')
+
+
+@login_required(login_url='login')
+def order_return(request, order_number):
+    order = get_object_or_404(Order, order_number=order_number)
+    final_total = order.final_total
+
+    if order.return_order():
+        messages.success(request, f"Order #{order.order_number} has been returned")
+       
+    else:
+        messages.error(request, f"Unable to return order #{order.order_number}")
+
+    # Refund payment and update wallet balance
+    if order.payment and order.payment.payment_status == 'COMPLETED':
+        # Retrieve the user's wallet if it exists, or create a new wallet if it doesn't exist
+        print("payment status is completetd")
+        wallet, created = Wallet.objects.get_or_create(user=request.user)
+
+        # Update wallet balance
+        if created:
+            wallet.balance = final_total
+            print("wallet balance:",wallet.balance)
+        else:
+            wallet.balance += final_total
+            print("wallet balance:",wallet.balance)
+        wallet.save()
+
+        # Update payment status to 'Refunded'
+        order.payment_status = 'Refunded'
+        
+        order.payment.save()
+        
+
+    return redirect('my_orders')
+
+
+def create_coupon(request):
+    if request.method == 'POST':
+        form = CouponForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('coupon_list') # shows the list of coupons
+    else:
+        form = CouponForm()
+    return render(request, 'create_coupon.html', {'form': form})
+
+
+
+"""def wallet_data(request):
     try:
         wallet = Wallet.objects.get(user=request.user)
     except ObjectDoesNotExist:
@@ -522,6 +528,29 @@ def wallet_data(request):
 
     # Fetching orders with payment method 'wallet'
     wallet_data = Order.objects.filter( payment__payment_method='WALLET').order_by('-created_at')
+
+    return render(request, 'accounts/wallet_data.html', {'wallet': wallet, 'wallet_data': wallet_data})"""
+
+@login_required(login_url='login')
+def wallet_data(request):
+    try:
+        wallet = Wallet.objects.get(user=request.user)
+    except ObjectDoesNotExist:
+        # If wallet doesn't exist, create a new one for the user
+        wallet = Wallet.objects.create(user=request.user, balance=0.00)
+        print(f"Wallet created for user {request.user.username}: {wallet}")
+    except Exception as e:
+        # Handle other unexpected exceptions
+        print(f"Error occurred while fetching wallet data for user {request.user.username}: {e}")
+        wallet = None
+
+    try:
+        # Fetching orders with payment method 'wallet'
+        wallet_data = Order.objects.filter(user=request.user,payment__payment_method='WALLET').order_by('-created_at')
+    except Exception as e:
+        # Handle exceptions when fetching orders
+        print(f"Error occurred while fetching wallet orders for user {request.user.username}: {e}")
+        wallet_data = []
 
     return render(request, 'accounts/wallet_data.html', {'wallet': wallet, 'wallet_data': wallet_data})
 

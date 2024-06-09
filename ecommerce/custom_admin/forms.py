@@ -71,26 +71,7 @@ class CouponForm(forms.ModelForm):
         model = Coupon  
         fields = ['code','discount','valid_from', 'valid_to']
 
-    def clean_discount(self):
-        discount = self.cleaned_data.get('discount')
-        if discount and discount > 200:
-            raise forms.ValidationError("Coupon discount cannot be more than 200.")
-        if discount and discount < 0:
-            raise forms.ValidationError("Coupon discount cannot be negative.")
-        return discount
-
-    def clean(self):
-        cleaned_data = super().clean()
-        valid_from = cleaned_data.get('valid_from')
-        valid_to = cleaned_data.get('valid_to')
-
-        if valid_to and valid_to <= timezone.now():
-            self.add_error('valid_to', 'Valid to date cannot be in the past.')
-
-        if valid_from and valid_to and valid_from > valid_to:
-            self.add_error('valid_from', 'Valid from date cannot be later than valid to date.')
-
-        return cleaned_data
+    
 
 class ProductOfferForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):

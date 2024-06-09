@@ -13,7 +13,9 @@
                     </header>
                     <div class="card-body">
                         <div class="text-right">
-                            <img src="{{ user_profile.profile_picture.url }}" alt="Profile picture" width="100" style="border-radius:50px;">
+                        {% if user_profile.profile_picture %}
+                            <img src="{{ user_profile.profile_picture.url }}" alt="Profile picture" width="50" height="50" style="border-radius: 50%;">
+                        {% endif %}
                         </div>
                         <div class="row">
                             <div class="col-md-12">

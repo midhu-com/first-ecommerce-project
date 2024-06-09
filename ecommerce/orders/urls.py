@@ -9,7 +9,7 @@ urlpatterns = [
    
    
     path('order_complete/', views.Order_complete, name='order_complete'),
-    path('cancel_order/<int:order_number>/', views.cancell_order, name='cancel_order'),
+    path('order_cancel/<int:order_number>/', views.order_cancel, name='order_cancel'),
     path('order_return/<int:order_number>/',views.order_return,name='order_return'),
 
     path('add_to_wallet/<int:order_number>/',views.add_to_wallet,name='add_to_wallet'),

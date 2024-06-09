@@ -1,0 +1,59 @@
+{% extends 'customadmin/customhome.html' %}
+{% block title %}Add Variation{% endblock %}
+
+{% block content %}
+{% include 'alert.html' %}
+<div class="container mt-4">
+    <h2>Add Variation for {{ product.product_name }}</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ formset.management_form }}
+        <div class="form-group">
+            {% for form in formset %}
+                <div class="form-row">
+                    <div class="col">
+                        <label for="{{ form.variation_category.id_for_label }}">{{ form.variation_category.label }}</label>
+                        {{ form.variation_category }}
+                        {% if form.variation_category.errors %}
+                            <div class="text-danger">
+                                {% for error in form.variation_category.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="col">
+                        <label for="{{ form.variation_value.id_for_label }}">{{ form.variation_value.label }}</label>
+                        {{ form.variation_value }}
+                        {% if form.variation_value.errors %}
+                            <div class="text-danger">
+                                {{ form.variation_value.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="col">
+                        <label for="{{ form.is_active.id_for_label }}">{{ form.is_active.label }}</label>
+                        {{ form.is_active }}
+                        {% if form.is_active.errors %}
+                            <div class="text-danger">
+                                {{ form.is_active.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="col">
+                        <label for="{{ form.DELETE.id_for_label }}">{{ form.DELETE.label }}</label>
+                        {{ form.DELETE }}
+                        {% if form.DELETE.errors %}
+                            <div class="text-danger">
+                                {{ form.DELETE.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        <button type="submit" class="btn btn-primary">Save</button>
+    </form>
+    
+</div>
+{% endblock %}
