@@ -103,7 +103,7 @@ class Order(models.Model):
                 item.save()
 
             # Update order status to canceled
-            self.status = 'Canceled'
+            self.status = 'Cancelled'
             self.save()
 
             

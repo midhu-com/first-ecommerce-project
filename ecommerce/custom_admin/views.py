@@ -19,13 +19,11 @@ from django.http import HttpResponse
 from django.db.models import Sum,Q,Count
 import csv
 from django.utils import timezone
-from django.utils import timezone as tz
 from datetime import datetime, timedelta
 from django.template.loader import render_to_string
 from xhtml2pdf import pisa
 from django.http import HttpResponseBadRequest
-from django.views.decorators.cache import never_cache
-from django import forms    
+from django.views.decorators.cache import never_cache  
 import calendar
 import json
 from django.forms import inlineformset_factory
@@ -559,28 +557,36 @@ def generate_sales_report_data(period, start_date=None, end_date=None):
 
 
 
-    droporders = Order.objects.filter(    Q(status='Returned') | Q(status='Cancelled'),
-               created_at__date__range=[start_date, end_date] )
+    droporders = Order.objects.filter(
+        Q(status='Returned') | Q(status='Cancelled'),
+        created_at__date__range=[start_date, end_date]
+    )
 
+    # Debug: Print the filtered droporders
+    print(f"Drop orders count: {droporders.count()}")
+    for order in droporders:
+        print(f"Order ID: {order.id}, Status: {order.status}, Final Total: {order.final_total}")
 
     total_sales = orders.aggregate(total_sales=Sum('final_total'))['total_sales'] or 0
     total_drop_sales = droporders.aggregate(total_drop_sales=Sum('final_total'))['total_drop_sales'] or 0
+    total_drop_sales_count = droporders.aggregate(total_drop_sales_count=Count('id'))['total_drop_sales_count'] or 0
     total_discount = orders.aggregate(total_discount=Sum('coupon_discount'))['total_discount'] or 0
     total_sales_count = orders.aggregate(total_sales_count=Count('id'))['total_sales_count'] or 0
     total_coupons = orders.aggregate(total_coupons=Count('coupon'))['total_coupons'] or 0
-    net_sales = total_sales - total_coupons-total_drop_sales
+    net_sales = total_sales -total_drop_sales
 
     return {
         'period': period,
         'start_date': start_date,
         'end_date': end_date,
         'total_sales': total_sales,
+        'total_drop_sales_count':total_drop_sales_count,
         'total_drop_sales':total_drop_sales,
         'total_discount': total_discount,
         'total_sales_count': total_sales_count,
         'total_coupons': total_coupons,
         'net_sales': net_sales,
-        'orders': orders,'total_drop_sales':total_drop_sales
+        'orders': orders,
     }
 
 

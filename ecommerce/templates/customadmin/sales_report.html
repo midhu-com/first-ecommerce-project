@@ -90,7 +90,16 @@
     </div>-->
   <br>
   <div class="row">
-  <div class="col-12 col-md-4 mb-4">
+    <div class="col-12 col-md-4 mb-4">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title text-primary">Total drop sales count</h5>
+          <p class="card-text">{{ total_drop_sales_count }}</p>
+        </div>
+      </div>
+    </div>
+  
+    <div class="col-12 col-md-4 mb-4">
     <div class="card shadow-sm">
       <div class="card-body">
         <h5 class="card-title text-primary">Total drop sales</h5>
@@ -136,7 +145,7 @@
               <td>{{ order.first_name }}</td>
               <td>{{ order.order_total}}</td>
               <td>{{ order.final_total }}</td>
-              <td>{{ order.discount_value}}</td>
+              <td>{{ order.coupon_discount}}</td>
               <td>{{ order.status }}</td>
               <td>{{ order.created_at }}</td>
             </tr>

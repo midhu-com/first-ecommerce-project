@@ -3,10 +3,8 @@ from django.contrib.auth.models import User
 from django import forms
 from category.models import Category
 from store.models import Product,Image
-from accounts.models import Account
 from orders.models import ProductOffers,CategoryOffers,Coupon
 from category.models import Category
-from django.utils import timezone
 
 
 

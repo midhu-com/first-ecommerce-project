@@ -3,11 +3,8 @@ from django.http import HttpResponse,JsonResponse
 from carts.models import Cartitem
 from .forms import CouponForm
 from .models import Order,OrderProduct,Payment,Coupon,Wallet
-from store.models import Variation
-from carts.models import Cart
 import datetime
 from django.template.context_processors import csrf
-from django.urls import reverse
 from accounts.models import Address
 from store.models import Product
 from django.contrib.auth.decorators import login_required
@@ -517,20 +514,7 @@ def create_coupon(request):
     return render(request, 'create_coupon.html', {'form': form})
 
 
-
-"""def wallet_data(request):
-    try:
-        wallet = Wallet.objects.get(user=request.user)
-    except ObjectDoesNotExist:
-        # If wallet doesn't exist, create a new one for the user
-        wallet = Wallet.objects.create(user=request.user, balance=0.00)
-        print(f"Wallet for user {request.user.username}: {wallet}")
-
-    # Fetching orders with payment method 'wallet'
-    wallet_data = Order.objects.filter( payment__payment_method='WALLET').order_by('-created_at')
-
-    return render(request, 'accounts/wallet_data.html', {'wallet': wallet, 'wallet_data': wallet_data})"""
-
+# to display the wallet information on user side
 @login_required(login_url='login')
 def wallet_data(request):
     try:
