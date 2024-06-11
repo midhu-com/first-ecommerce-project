@@ -24,9 +24,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-f^dus)tf_an6&sbm3eh4l8dq!ru7=r2nvy98o7gnmk%@4ba%f5'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -104,10 +104,11 @@ AUTH_USER_MODEL='accounts.Account'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'cadmindb',
-        'USER':'postgres',
-        'PASSWORD':'midhu8486',
+        'NAME': 'myproject',
+        'USER':'myprojectuser',
+        'PASSWORD':'password',
         'HOST':'localhost',
+	'PORT':'5432'
     }
 }
 
