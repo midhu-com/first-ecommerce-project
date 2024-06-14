@@ -104,9 +104,9 @@ AUTH_USER_MODEL='accounts.Account'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'project',
-        'USER':'projectuser',
-        'PASSWORD':'8323',
+        'NAME': 'myecomproject',
+        'USER':'myecomprojectuser',
+        'PASSWORD':'password',
         'HOST':'localhost',
 	'PORT':'5432'
     }
