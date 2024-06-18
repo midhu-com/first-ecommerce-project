@@ -32,8 +32,8 @@ class CategoryForm(forms.ModelForm):
 class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
-        exclude = ['created_date', 'modified_date','slug']  # Exclude these fields from the form
-        fields = ['product_name','description', 'price','stock','is_available','category']
+        exclude = ['created_date', 'modified_date']  # Exclude these fields from the form
+        fields = ['product_name','slug','description', 'price','stock','is_available','category']
        
     def __init__(self, *args, **kwargs):
         super(ProductForm, self).__init__(*args, **kwargs)
