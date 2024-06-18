@@ -5,6 +5,7 @@ from accounts.models import Account
 from django.core.validators import MinValueValidator, MaxValueValidator
 from datetime import date
 from django.db.models import Avg,Count
+from django.utils.text import slugify
 
 # Create your models here.
 class Product(models.Model):
@@ -26,6 +27,11 @@ class Product(models.Model):
 
     def get_url(self):
         return reverse('product_detail',args=[self.category.slug,self.slug])
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.product_name)
+        super().save(*args, **kwargs)
     
     def averagereview(self):
         reviews = ReviewRating.objects.filter(product=self,status=True).aggregate(average=Avg('rating'))
