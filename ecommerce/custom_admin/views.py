@@ -296,6 +296,9 @@ def add_product(request):
                 messages.error(request, 'Cannot add product to an inactive category')
         else:
             messages.error(request, 'Please correct the errors below!')
+    else:
+        productform = ProductForm()
+        imageform = ProductImageForm()  
             
     context={"form":productform,"form_image":imageform}
     return render(request, 'customadmin/add_product.html',context)
