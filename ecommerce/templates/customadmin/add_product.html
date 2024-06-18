@@ -53,6 +53,28 @@
                                 </div>
                             {% endif %}
                         </div>
+                        <div class="form-group mb-3">
+                            <label for="id_stock" class="form-label">Stock</label>
+                            <input type="number" id="id_sstock" name="stock" value="{{ form.stock.value }}" class="form-control">
+                            {% if form.stock.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.stock.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="id_is_available" class="form-label">Is Available</label>
+                            <input type="checkbox" id="id_is_available" name="is_available" {% if form.is_available.value %}checked{% endif %} class="form-check-input">
+                            {% if form.is_available.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.is_available.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
 
                         <div class="form-group mb-3">
                             <label for="id_description" class="form-label">Description</label>
