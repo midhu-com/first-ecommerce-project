@@ -336,18 +336,16 @@ def add_variation(request, product_id):
     VariationFormSet = inlineformset_factory(Product, Variation, form=VariationForm, extra=1, can_delete=True)
 
     if request.method == 'POST':
-        formset = VariationFormSet(request.POST, instance=product)
+        formset = VariationFormSet(request.POST, instance=product,prefix='variations')
         if formset.is_valid():
             formset.save()
             messages.success(request, 'Variations added successfully')
             return redirect('products')
         else:
-            print(formset.errors)  # Print the formset errors to the console for debugging
-            for form in formset:
-                print(form.errors)  # Print the formset errors to the console for debugging
+           
             messages.error(request, 'Please correct the errors below!')
     else:
-        formset = VariationFormSet(instance=product)
+        formset = VariationFormSet(instance=product,prefix='variations')
     
     context = {
         'product': product,
