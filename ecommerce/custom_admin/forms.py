@@ -13,6 +13,8 @@ class RegisterUser(UserCreationForm):
         model = User
         fields = ["username","email","password1","password2","is_superuser"]
 
+        
+
 class EditForm(UserChangeForm):
     password=None
     class Meta:
@@ -34,6 +36,15 @@ class ProductForm(forms.ModelForm):
         model = Product
         exclude = ['created_date', 'modified_date']  # Exclude these fields from the form
         fields = ['product_name','slug','description', 'price','stock','is_available','category']
+        error_messages = {
+            'price': {
+                'min_value': "Price cannot be negative."
+            },
+            'stock': {
+                'min_value': "Stock cannot be negative."
+            }
+            # Add more error messages as needed for other fields
+        }
        
     def __init__(self, *args, **kwargs):
         super(ProductForm, self).__init__(*args, **kwargs)
@@ -47,9 +58,15 @@ class ProductForm(forms.ModelForm):
 
     def clean_price(self):
         price = self.cleaned_data.get('price')
-        if price is not None and price < 0:
-            raise forms.ValidationError('Enter a whole number, price cannot be negative')
+        if price is not None and price < 0.01:
+            raise forms.ValidationError(self.Meta.error_messages['price']['min_value'])
         return price  # Only return the cleaned price if validation passes
+
+    def clean_stock(self):
+        stock = self.cleaned_data.get('stock')
+        if stock is not None and stock < 0:
+            raise forms.ValidationError(self.Meta.error_messages['stock']['min_value'])
+        return stock
 
 class ProductImageForm(forms.ModelForm)   :
     images=forms.FileField(widget=forms.TextInput(attrs={
