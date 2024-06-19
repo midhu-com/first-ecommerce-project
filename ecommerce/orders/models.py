@@ -181,7 +181,7 @@ class OrderProduct(models.Model):
     quantity=models.IntegerField()
     product_price=models.FloatField()
     ordered=models.BooleanField(default=False)
-    created_at=models.DateTimeField(auto_now_add=True)
+    created_at=models.DateTimeField(default=timezone.now)
     updated_at=models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
