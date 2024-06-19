@@ -53,8 +53,8 @@ class CouponForm(forms.ModelForm):
 class VariationForm(forms.ModelForm):
     class Meta:
         model = Variation
-        exclude = ['id'] 
-        fields = ['variation_category', 'variation_value', 'is_active']  
+        exclude = ['product'] 
+        fields = ['id','variation_category', 'variation_value', 'is_active']  
 
     def __init__(self, *args, **kwargs):
         super(VariationForm, self).__init__(*args, **kwargs)
