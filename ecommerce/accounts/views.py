@@ -361,7 +361,11 @@ def AddAddress(request):
             address.user = request.user
             address.save()
             messages.success(request,'Address added successfully')
-            return redirect('profile') # Redirect to profile view
+            next_url = request.GET.get('next')
+            if next_url:
+                return redirect(next_url)
+            else:
+                return redirect('profile') # Redirect to profile view
     else:
         address_form = AddressForm()
 
