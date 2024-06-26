@@ -26,7 +26,7 @@
                 <div class="card">
                     <div class="card-body">
                         <h4 class="title mb-4" >Add New Address</h4>
-                        <form action="{% url 'add_address' %}" method="POST" enctype="multipart/form-data" class="needs-validation">
+                        <form action="{% url 'add_address' %}?next={{ request.GET.next }}" method="POST" enctype="multipart/form-data" class="needs-validation">
                         {% csrf_token %}
                             
                             <div class="form-row">
