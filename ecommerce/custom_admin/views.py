@@ -317,8 +317,8 @@ def delete_product(request,product_id):
         return redirect('products')
 
     return redirect('products')
-@never_cache
 
+@never_cache
 def restore_product(request,product_id):
     if request.method == 'POST':
         product=get_object_or_404(Product,id=product_id)
