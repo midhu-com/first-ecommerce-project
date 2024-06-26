@@ -134,7 +134,7 @@ def user_login(request):
                         return redirect(nextPage)
                       
                 except:
-                    return redirect('dashboard')
+                    return redirect('index')
         else:
             messages.error(request, "Invalid login credentials")
             return redirect('login')
