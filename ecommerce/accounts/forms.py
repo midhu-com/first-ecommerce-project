@@ -84,7 +84,7 @@ class UserProfileForm(forms.ModelForm):
 class AddressForm(forms.ModelForm):
     class Meta:
         model = Address
-        fields = ['address_line_1', 'city', 'state', 'country']
+        fields = ['address_line_1', 'city', 'state', 'country','pincode']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -94,3 +94,4 @@ class AddressForm(forms.ModelForm):
         self.fields['city'].widget.attrs.update({'class': 'form-control'})
         self.fields['state'].widget.attrs.update({'class': 'form-control'})
         self.fields['country'].widget.attrs.update({'class': 'form-control'})
+        self.fields['pincode'].widget.attrs.update({'class': 'form-control'})
