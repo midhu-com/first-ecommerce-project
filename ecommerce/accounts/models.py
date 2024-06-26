@@ -88,7 +88,8 @@ class Address(models.Model):
     city = models.CharField(max_length=50)
     state = models.CharField(max_length=50)
     country = models.CharField(max_length=50)
+    pincode = models.CharField(max_length=10,default='000000')
 
     def __str__(self):
-        return f"{self.address_line_1},{self.city}, {self.state}, {self.country}"
+        return f"{self.address_line_1},{self.city}, {self.state}, {self.country},{self.pincode}"
     
