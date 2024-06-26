@@ -21,21 +21,25 @@
                             <div class="form-row">
                                 <div class="col form-group">
                                     <label for="">Address Line 1</label>
-                                    <input type="text" name="address_line_1" class="form-control" value="{{ address_form.instance.address_line_1 }}" required>
+                                    <input type="text" name="address_line_1" class="form-control" value="{{ form.instance.address_line_1 }}" required>
                                 </div>
                             </div>
                             <div class="form-row">
                                 <div class="col form-group">
                                     <label for="">City</label>
-                                    <input type="text" name="city" class="form-control" value="{{ address_form.instance.city }}" required>
+                                    <input type="text" name="city" class="form-control" value="{{ form.instance.city }}" required>
                                 </div>
                                 <div class="col form-group">
                                     <label for="">State</label>
-                                    <input type="text" name="state" class="form-control" value="{{ address_form.instance.state }}" required>
+                                    <input type="text" name="state" class="form-control" value="{{ form.instance.state }}" required>
                                 </div>
                                 <div class="col form-group">
                                     <label for="">Country</label>
-                                    <input type="text" name="country" class="form-control" value="{{ address_form.instance.country }}" required>
+                                    <input type="text" name="country" class="form-control" value="{{ form.instance.country }}" required>
+                                </div>
+                                <div class="col form-group">
+                                    <label for="">Pincode</label>
+                                    <input type="number" name="pincode" class="form-control" value="{{ form.instance.pincode }}" required>
                                 </div>
                             </div>
                             <button type="submit" class="btn btn-primary">Update Address</button>
