@@ -6,6 +6,8 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from datetime import date
 from django.db.models import Avg,Count
 from django.utils.text import slugify
+rom PIL import Image as PilImage
+from image_cropping import ImageRatioField
 
 # Create your models here.
 class Product(models.Model):
@@ -84,6 +86,7 @@ class Product(models.Model):
 class Image(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='product_images')
     image = models.ImageField(upload_to='product_images/')
+    cropped_image = ImageRatioField('image', '500x500')
 
 
 class VariationManager(models.Manager):
@@ -101,13 +104,26 @@ class Variation(models.Model):
     product=models.ForeignKey(Product,on_delete=models.CASCADE)
     variation_category=models.CharField(max_length=200,choices=variation_category_choice)
     variation_value=models.CharField(max_length=100)
+    stock = models.IntegerField(validators=[MinValueValidator(0)],default=0)
+    image = models.ImageField(upload_to='variation_images/',default='default_variation_image.jpg')
+    cropped_image = models.ImageField(upload_to='variation_images/cropped/', blank=True, null=True)
     is_active=models.BooleanField(default=True)
     created_date=models.DateTimeField(auto_now=True)
 
     objects=VariationManager()
 
     def __str__(self):
-        return self.variation_value
+        return f"{self.product.product_name} - {self.variation_value}"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if self.image and not self.cropped_image:  # Check if image exists and cropped_image doesn't
+            with PilImage.open(self.image.path) as img:
+                cropped = img.crop((0, 0, min(img.width, img.height), min(img.width, img.height)))
+                cropped_image_path = f'{self.image.path.rsplit(".", 1)[0]}_cropped.jpg'
+                cropped.save(cropped_image_path)
+                self.cropped_image.name = cropped_image_path.split('/', 1)[-1]
+                super().save(*args, **kwargs)
     
 class ReviewRating(models.Model):
     product=models.ForeignKey(Product,on_delete=models.CASCADE)
