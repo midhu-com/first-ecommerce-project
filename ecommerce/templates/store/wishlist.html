@@ -99,6 +99,34 @@
                             {% csrf_token %}
                                 <button type="submit" class="btn btn-danger">Remove</button>
                             </form>
+                            <form action="{% url 'add_cart' item.product.id %}" method="post">
+                                {% csrf_token %}
+                                <!-- Product variations -->
+                                {% if item.product.variations.exists %}
+                                <div class="form-group">
+                                    <label for="color_variation_{{ item.id }}">Select Color:</label>
+                                    <select name="color" id="color_variation_{{ item.id }}" class="form-control">
+                                        {% for variation in item.product.variations.all %}
+                                        {% if variation.variation_category == 'color' %}
+                                        <option value="{{variation.variation_value }}">{{ variation.variation_value }}</option>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="size_variation_{{ item.id }}">Select Size:</label>
+                                    <select name="size" id="size_variation_{{ item.id }}" class="form-control">
+                                        {% for variation in item.product.variations.all %}
+                                        {% if variation.variation_category == 'size' %}
+                                        <option value="{{ variation.variation_value }}">{{ variation.variation_value }}</option>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                {% endif %}
+                                <!-- End variations -->
+                                <button type="submit" class="btn btn-primary">Add to Cart</button>
+                            </form>
                             <a href="{% url 'product_detail' category_slug=item.product.category.slug product_slug=item.product.slug %}" class="btn btn-success">View Detail</a>
                         </div>
                     </div>
