@@ -1,4 +1,4 @@
-from django.contrib.auth.forms import UserCreationForm,UserChangeForm
+    from django.contrib.auth.forms import UserCreationForm,UserChangeForm
 from django.contrib.auth.models import User
 from django import forms
 from category.models import Category
@@ -68,18 +68,43 @@ class ProductForm(forms.ModelForm):
             raise forms.ValidationError(self.Meta.error_messages['stock']['min_value'])
         return stock
 
-class ProductImageForm(forms.ModelForm)   :
-    images=forms.FileField(widget=forms.TextInput(attrs={
-        "name":"images",
-        "type":"File",
-        "class":"form-control",
-        "multiple":"True",
-    }),label="")
+class CustomClearableFileInput(forms.ClearableFileInput):
+    template_name = 'custom_clearable_file_input.html'
+
+    def get_context(self, name, value, attrs):
+        context = super().get_context(name, value, attrs)
+        context['widget']['attrs']['multiple'] = True  # Allow multiple files to be selected
+        return context
+class CustomClearableFileInput(forms.ClearableFileInput):
+    template_name = 'custom_clearable_file_input.html'
+
+    def get_context(self, name, value, attrs):
+        context = super().get_context(name, value, attrs)
+        context['widget']['attrs']['multiple'] = True  # Allow multiple files to be selected
+        return context
+
+class ProductImageForm(forms.ModelForm):
+    images = forms.FileField(widget=CustomClearableFileInput(attrs={
+        'class': 'form-control-file',
+    }), label='Product Images', required=False)
 
     class Meta:
-        model=Image
-        fields=['images']
+        model = Image
+        fields = ['images']
 
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        
+        if commit:
+            instance.save()
+            images = self.cleaned_data.get('images')
+            for image in images:
+                if image:
+                    img_instance = Image(image=image, product=instance.product)
+                    img_instance.save()
+                    # Perform cropping logic here if needed
+        
+        return instance
 
 class CouponForm(forms.ModelForm):
     class Meta:
