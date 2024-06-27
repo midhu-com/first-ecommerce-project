@@ -17,6 +17,7 @@ from store.models import Product,Variation
 
 
 # Create your views here.
+# Create your views here.
 def store(request, category_slug=None):
     categories = None
     products = None
@@ -31,7 +32,6 @@ def store(request, category_slug=None):
         products = Product.objects.filter(category=categories, is_available=True).order_by('id')
     else:
         products = Product.objects.filter(is_available=True).order_by('id')
-    
     
     
     # Filter products based on selected color and size
