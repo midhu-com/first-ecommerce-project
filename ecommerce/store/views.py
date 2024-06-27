@@ -40,12 +40,6 @@ def store(request, category_slug=None):
     if selected_size:
         products = products.filter(variations__variation_value__iexact=selected_size, variations__variation_category__iexact='size')
 
-    for product in products:
-        total_stock = 0
-        variations = product.variations.filter(is_active=True)
-        for variation in variations:
-            total_stock += variation.stock
-        product.total_stock = total_stock  
     
     # Pagination
     paginator = Paginator(products, 8)
