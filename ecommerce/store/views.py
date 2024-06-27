@@ -32,13 +32,7 @@ def store(request, category_slug=None):
     else:
         products = Product.objects.filter(is_available=True).order_by('id')
     
-    # Calculate total stock for each product
-    for product in products:
-        total_stock = 0
-        variations = product.variations.filter(is_active=True)
-        for variation in variations:
-            total_stock += variation.stock
-        product.total_stock = total_stock
+    
     
     # Filter products based on selected color and size
     if selected_color:
