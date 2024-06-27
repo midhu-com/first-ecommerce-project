@@ -27,6 +27,12 @@ from django.views.decorators.cache import never_cache
 import calendar
 import json
 from django.forms import inlineformset_factory
+from django.core.files.base import ContentFile
+import base64
+from PIL import Image as PilImage
+from io import BytesIO
+from orders.forms import VariationFormSet
+from django.db import IntegrityError
 
 
 
@@ -291,7 +297,7 @@ def add_product(request):
                 for file in files:
                     Image.objects.create(product=product,image=file)
                 messages.success(request, 'Product added successfully')
-                return redirect('products')
+                return redirect('add_variation', product_id=product.id)
             else:
                 messages.error(request, 'Cannot add product to an inactive category')
         else:
@@ -326,32 +332,130 @@ def restore_product(request,product_id):
         product.is_available=True
         product.save()
         logger.info(f"Product {product_id} restored by user {request.user.id}")
-        return redirect('products')@never_cache
+        return redirect('products')
     
 
-# add variations like color and size to products   
+# add variations like color and size to products 
+@never_cache
 @login_required(login_url='login')
 def add_variation(request, product_id):
     product = get_object_or_404(Product, id=product_id)
-    VariationFormSet = inlineformset_factory(Product, Variation, form=VariationForm, extra=1, can_delete=True)
+    existing_variations = Variation.objects.filter(product=product)
 
     if request.method == 'POST':
-        formset = VariationFormSet(request.POST, instance=product,prefix='variations')
-        if formset.is_valid():
-            formset.save()
-            messages.success(request, 'Variations added successfully')
-            return redirect('products')
-        else:
-           
-            messages.error(request, 'Please correct the errors below!')
-    else:
-        formset = VariationFormSet(instance=product,prefix='variations')
-    
-    context = {
-        'product': product,
-        'formset': formset,
-    }
-    return render(request, 'customadmin/add_variation.html', context)
+        # Handle deletion
+        if 'delete_variation' in request.POST:
+            variation_id = request.POST.get('delete_variation')
+            try:
+                variation = Variation.objects.get(id=variation_id)
+                variation.is_active = False  # Soft delete by deactivating
+                variation.save()
+                messages.success(request, "Variation deleted successfully.")
+            except Variation.DoesNotExist:
+                messages.error(request, "Variation not found.")
+            return redirect('add_variation', product_id=product_id)
+
+        # Handle toggling active status
+        if 'toggle_active' in request.POST:
+            variation_id = request.POST.get('toggle_active')
+            try:
+                variation = Variation.objects.get(id=variation_id)
+                variation.is_active = not variation.is_active
+                variation.save()
+                if variation.is_active:
+                    messages.success(request, "Variation activated successfully.")
+                else:
+                    messages.success(request, "Variation deactivated successfully.")
+            except Variation.DoesNotExist:
+                messages.error(request, "Variation not found.")
+            return redirect('add_variation', product_id=product_id)
+
+        # Handle editing existing variations
+        if 'edit_variation' in request.POST:
+            variation_id = request.POST.get('variation_id')
+            variation_category = request.POST.get('variation_category')
+            variation_value = request.POST.get('variation_value')
+            stock = request.POST.get('stock')
+            image = request.FILES.get('image', None)
+
+            try:
+                variation = Variation.objects.get(id=variation_id)
+                variation.variation_category = variation_category
+                variation.variation_value = variation_value
+                variation.stock = stock
+                if image:
+                    variation.image = image
+                variation.save()
+                messages.success(request, "Variation updated successfully.")
+            except IntegrityError:
+                messages.error(request, f"Error updating variation ({variation_category} - {variation_value}).")
+                return redirect('add_variation', product_id=product.id)
+            except Variation.DoesNotExist:
+                messages.error(request, "Variation not found.")
+                return redirect('add_variation', product_id=product_id)
+
+        # Handle individual variations
+        for key in request.POST:
+            if key.startswith('variation_category'):
+                try:
+                    index = key.split('-')[1]
+                    variation_category = request.POST.get(f'variation_category-{index}')
+                    variation_value = request.POST.get(f'variation_value-{index}')
+                    stock = request.POST.get(f'stock-{index}')
+                    image = request.FILES.get(f'image-{index}', None) 
+
+                    if variation_category and variation_value and stock:
+                        try:
+                            # Check if the variation already exists
+                            existing_variation = Variation.objects.filter(
+                                product=product,
+                                variation_category=variation_category,
+                                variation_value=variation_value,
+                            ).first()
+
+                            if existing_variation:
+                                # Update the existing variation
+                                existing_variation.stock = stock
+                                if image:
+                                    existing_variation.image = image
+                                existing_variation.save()
+                            else:
+                                Variation.objects.create(   
+                                    product=product,
+                                    variation_category=variation_category,
+                                    variation_value=variation_value,
+                                    stock=stock,
+                                    image=image if image else 'default_images/default.jpg'
+                                )
+                        except IntegrityError:
+                            messages.error(request, f"Error adding variation ({variation_category} - {variation_value}). It might already exist.")
+                            return redirect('add_variation', product_id=product.id)
+                except IndexError:
+                    continue  
+
+    # Render the template with the product context and existing variations
+    return render(request, 'customadmin/add_variation.html', {'product': product, 'existing_variations': existing_variations})
+def crop_image(request, variation_id):
+    variation = get_object_or_404(Variation, id=variation_id)
+    if request.method == 'POST':
+        crop_data = request.POST.get('crop_data')
+        if crop_data:
+            # Decode base64 crop data
+            format, imgstr = crop_data.split(';base64,')
+            ext = format.split('/')[-1]
+            img_data = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
+            
+            # Open image using PIL and crop
+            original_image = PilImage.open(img_data)
+            cropped_image_io = BytesIO()
+            original_image.save(cropped_image_io, format=ext)
+            
+            # Save cropped image to the instance
+            variation.cropped_image.save(f'cropped_{variation.image.name}', ContentFile(cropped_image_io.getvalue()), save=False)
+            variation.save()
+            return redirect('product_detail', product_id=variation.product.id)
+    return render(request, 'crop_image.html', {'variation': variation})
+
 
    
 
