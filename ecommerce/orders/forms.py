@@ -3,6 +3,7 @@ from django.utils import timezone
 from.models import Order,Coupon
 from .models import Address
 from store.models import Variation
+from django.forms import modelformset_factory
 
 class OrderForm(forms.ModelForm):
     class Meta:
@@ -54,11 +55,14 @@ class VariationForm(forms.ModelForm):
     class Meta:
         model = Variation
         exclude = ['product'] 
-        fields = ['id','variation_category', 'variation_value', 'is_active']  
+        fields = ['id','variation_category', 'variation_value','stock', 'image', 'is_active']  
 
     def __init__(self, *args, **kwargs):
         super(VariationForm, self).__init__(*args, **kwargs)
         
         self.fields['variation_category'].widget.attrs.update({'class': 'form-control'})
         self.fields['variation_value'].widget.attrs.update({'class': 'form-control'})
+        self.fields['image'].widget.attrs.update({'class': 'form-control'})
+        self.fields['stock'].widget.attrs.update({'class': 'form-control'})
         self.fields['is_active'].widget.attrs.update({'class': 'form-check-input'})
+VariationFormSet = modelformset_factory(Variation, form=VariationForm, extra=1, can_delete=True)
