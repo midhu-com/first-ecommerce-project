@@ -56,6 +56,30 @@
     
                 </div> <!-- card-body.// -->
             </div>
+            <div class="col-md-6">
+                <h3>Filter By</h3>
+                <form method="GET" id="filter-form">
+                    <div class="form-group">
+                        <label for="color">Color</label>
+                        <select name="color" id="color" class="form-control">
+                            <option value="">All</option>
+                            {% for color in colors %}
+                                <option value="{{ color }}">{{ color|capfirst }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="size">Size</label>
+                        <select name="size" id="size" class="form-control">
+                            <option value="">All</option>
+                            {% for size in sizes %}
+                                <option value="{{ size }}">{{ size|capfirst }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Apply Filters</button>
+                </form>
+            </div>
         </article> <!-- filter-group  .// -->
        
         </article> <!-- filter-group .// -->
@@ -63,6 +87,7 @@
     </div> <!-- card.// -->
     
         </aside> <!-- col.// -->
+
         <main class="col-md-9">
     
     <header class="border-bottom mb-4 pb-3">
@@ -93,12 +118,12 @@
                     
                     {% endif %}
                     </div>
-                    <div>                                                                                           
-                        {% if product.stock <= 0 %}
-                            <h6 class="text-danger">Out Of Stock </h6>
+                    <div>
+                        {% if product.total_stock > 0 %}
+                            <h6 class="text-warning">{{ product.total_stock }} stocks are available!</h6>
                         {% else %}
-                        <h6 class="text-warning">{{product.stock}} stocks are left!</h6>
-                    {% endif %}
+                            <h6 class="text-danger">Out Of Stock</h6>
+                        {% endif %}
                     </div>
                     
                  <!--<a href="{% url 'add_cart' product.id %}" class="btn btn-primary btn-block">Add to Cart</a> when the product is out of stock it not necessary to add it to add to cart so-->
