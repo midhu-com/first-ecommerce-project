@@ -10,36 +10,57 @@ from .forms import ReviewForm
 from django.contrib import messages
 from orders.models import OrderProduct,ProductOffers,CategoryOffers
 from carts.models import wishlist
-from store.models import Product
+from store.models import Product,Variation
+
 
 
 
 
 # Create your views here.
-def store(request,category_slug=None):
-    categories=None
-    products=None
-
-    if category_slug != None:
-        categories =get_object_or_404(Category,slug=category_slug)
-        products   =Product.objects.filter(category=categories,is_available=True).order_by('id')
-        paginator=Paginator(products,10)
-        page=request.GET.get('page')
-        paged_products=paginator.get_page(page)
-        product_count=products.count()
+def store(request, category_slug=None):
+    categories = None
+    products = None
+    colors = Variation.objects.filter(variation_category='color').values_list('variation_value', flat=True).distinct()
+    sizes = Variation.objects.filter(variation_category='size').values_list('variation_value', flat=True).distinct()
+    
+    selected_color = request.GET.get('color')
+    selected_size = request.GET.get('size')
+    
+    if category_slug:
+        categories = get_object_or_404(Category, slug=category_slug)
+        products = Product.objects.filter(category=categories, is_available=True).order_by('id')
     else:
-        products=Product.objects.filter(is_available=True).order_by('id')
-        paginator=Paginator(products,8)
-        page=request.GET.get('page')
-        paged_products=paginator.get_page(page)
-        product_count=products.count()
-
-    context={
-        'products':paged_products,
-        'product_count':product_count,
+        products = Product.objects.filter(is_available=True).order_by('id')
+    
+    # Calculate total stock for each product
+    for product in products:
+        total_stock = 0
+        variations = product.variations.filter(is_active=True)
+        for variation in variations:
+            total_stock += variation.stock
+        product.total_stock = total_stock
+    
+    # Filter products based on selected color and size
+    if selected_color:
+        products = products.filter(variations__variation_value__iexact=selected_color, variations__variation_category__iexact='color')
+    if selected_size:
+        products = products.filter(variations__variation_value__iexact=selected_size, variations__variation_category__iexact='size')
+    
+    # Pagination
+    paginator = Paginator(products, 8)
+    page_number = request.GET.get('page')
+    paged_products = paginator.get_page(page_number)
+    
+    context = {
+        'products': paged_products,
+        'product_count': products.count(),
+        'colors': colors,
+        'sizes': sizes,
+        'selected_color': selected_color,
+        'selected_size': selected_size,
     }
-    return render(request,'store/store.html',context)
-
+    
+    return render(request, 'store/store.html', context)
 
 # product desccription 
 def product_detail(request,category_slug,product_slug):
@@ -47,6 +68,11 @@ def product_detail(request,category_slug,product_slug):
     try:
         
         single_product=Product.objects.get(category__slug=category_slug,slug=product_slug)
+        color_variations = single_product.variations.filter(variation_category='color', is_active=True)
+        size_variations = single_product.variations.filter(variation_category='size', is_active=True)
+
+        # Calculate total stock from variations
+        total_variation_stock = sum(variation.stock for variation in color_variations) + sum(variation.stock for variation in size_variations)
 
         product_offer = ProductOffers.objects.filter(product=single_product).first()
         category_offer = CategoryOffers.objects.filter(category=single_product.category).first()
@@ -100,6 +126,9 @@ def product_detail(request,category_slug,product_slug):
         'highest_discount_amount': highest_discount_amount,
         'product_discount_amount': product_discount_amount,
         'category_discount_amount': category_discount_amount,
+        'total_variation_stock': total_variation_stock,  
+        'color_variations': color_variations,
+        'size_variations': size_variations
         
     }
    
