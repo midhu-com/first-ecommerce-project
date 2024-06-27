@@ -77,7 +77,7 @@
                                 <label for="color">Choose Color</label>
                                 <select name="color" class="form-control" required>
                                     <option value="" disabled selected>Select</option>
-                                    {% for color in single_product.variation_set.colors %}
+                                    {% for color in color_variations %}
                                         <option value="{{ color.variation_value | lower }}">{{ color.variation_value | capfirst }}</option>
                                     {% endfor %}
                                 </select>
@@ -86,16 +86,20 @@
                                 <label for="size">Select Size</label>
                                 <select name="size" class="form-control">
                                     <option value="" disabled selected>Select</option>
-                                    {% for size in single_product.variation_set.sizes %}
+                                    {% for size in size_variations %}
                                         <option value="{{ size.variation_value | lower }}">{{ size.variation_value | capfirst }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
-                            {% if single_product.stock <= 0 %}
-                                <h5 class="text-danger">Out Of Stock</h5>
-                            {% else %}
-                                <button type="submit" class="btn btn-primary btn-block">Add to Cart <i class="fas fa-shopping-cart"></i></button>
-                            {% endif %}
+                            <div>
+                                {% if total_variation_stock > 0 %}
+                                    <h6 class="text-warning">{{ total_variation_stock }} stocks are available in variations!</h6>
+                                    <button type="submit" class="btn btn-primary btn-block">Add to Cart <i class="fas fa-shopping-cart"></i></button>
+                                {% else %}
+                                    <h6 class="text-danger">Out Of Stock</h6>
+                                {% endif %}
+                            </div>
+                            
                         </form>
                         <form action="{% url 'add_wishlist' product_slug=single_product.slug %}" method="post" class="mt-3">
                             {% csrf_token %}
@@ -257,6 +261,38 @@
         container: null,
         template: null,
     });
+    document.addEventListener('DOMContentLoaded', function() {
+    const stars = document.querySelectorAll('.rate input');
+    const starLabels = document.querySelectorAll('.rate label');
+
+    stars.forEach((star, index) => {
+        star.addEventListener('change', function() {
+            // Perform actions based on the selected star (index + 0.5 for half stars)
+            console.log('Selected rating:', star.value);
+        });
+
+        starLabels[index].addEventListener('mouseenter', function() {
+            highlightStars(index);
+        });
+
+        starLabels[index].addEventListener('mouseleave', function() {
+            removeHighlight();
+        });
+    });
+
+    function highlightStars(index) {
+        for (let i = 0; i <= index; i++) {
+            starLabels[i].classList.add('hover');
+        }
+    }
+
+    function removeHighlight() {
+        starLabels.forEach(label => {
+            label.classList.remove('hover');
+        });
+    }
+});
+
     </script>
     
 {% endblock %}
