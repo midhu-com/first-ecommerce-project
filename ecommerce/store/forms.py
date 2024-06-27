@@ -18,8 +18,8 @@ class ImageForm(forms.ModelForm):
         'class': 'form-control-file',
     }), label='Product Images', required=False)
 
-    cropped_images = forms.ImageField(widget=forms.HiddenInput(), required=False)
+    
     
     class Meta:
         model = Image
-        fields = ['images', 'cropped_image']
+        fields = ['images']
