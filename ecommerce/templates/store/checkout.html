@@ -149,7 +149,7 @@
                     couponsList.innerHTML = '';
                     data.coupons.forEach(coupon => {
                         const li = document.createElement('li');
-                        li.textContent = `${coupon.code} - Discount: ${coupon.discount}%`;
+                        li.textContent = `${coupon.code} - Discount: ${coupon.discount}`;
                         li.dataset.couponCode = coupon.code; // Store coupon code in dataset
                         couponsList.appendChild(li);
                     });
