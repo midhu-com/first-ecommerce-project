@@ -7,7 +7,7 @@ from datetime import date
 from django.db.models import Avg,Count
 from django.utils.text import slugify
 from PIL import Image as PilImage
-from image_cropping import ImageRatioField
+
 
 # Create your models here.
 class Product(models.Model):
@@ -115,15 +115,7 @@ class Variation(models.Model):
     def __str__(self):
         return f"{self.product.product_name} - {self.variation_value}"
 
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        if self.image and not self.cropped_image:  # Check if image exists and cropped_image doesn't
-            with PilImage.open(self.image.path) as img:
-                cropped = img.crop((0, 0, min(img.width, img.height), min(img.width, img.height)))
-                cropped_image_path = f'{self.image.path.rsplit(".", 1)[0]}_cropped.jpg'
-                cropped.save(cropped_image_path)
-                self.cropped_image.name = cropped_image_path.split('/', 1)[-1]
-                super().save(*args, **kwargs)
+    
     
 class ReviewRating(models.Model):
     product=models.ForeignKey(Product,on_delete=models.CASCADE)
