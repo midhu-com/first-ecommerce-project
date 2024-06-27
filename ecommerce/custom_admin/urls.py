@@ -21,6 +21,7 @@ urlpatterns=[
     path('restore_product/<int:product_id>/', views.restore_product, name='restore_product'),
     path('edit_product/<int:product_id>/', views.edit_product, name='edit_product'),
     path('product/<int:product_pk>/detailad/', views.product_detailad, name='product_detailad'),
+    path('crop-image/<int:variation_id>/', views.crop_image, name='crop_image'),
 
     path('delete_category/<int:category_id>/', views.delete_category, name='delete_category'),
     path('restore_category/<int:category_id>/', views.restore_category, name='restore_category'),
