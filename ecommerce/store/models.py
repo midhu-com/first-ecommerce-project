@@ -82,6 +82,10 @@ class Product(models.Model):
             discount = max(discount, self.category.offer.discount_percentage)
 
         return discount
+    @property
+    def total_stock(self):
+        return sum(variation.stock for variation in self.variations.filter(is_active=True))
+
         
 class Image(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='product_images')
