@@ -23,10 +23,18 @@ class Cartitem(models.Model):
     def sub_total(self):
         return self.product.price * self.quantity
 
+    def __str__(self):
+        return f"{self.quantity} x {self.product.product_name} - {', '.join([str(variation) for variation in self.variations.all()])}"
+
     def __unicode__(self):
         return self.product
     
-
+    @property
+    def stock_info(self):
+        stock_info = {}
+        for variation in self.variations.all():
+            stock_info[variation.variation_category] = variation.stock
+        return stock_info
 
 class wishlist(models.Model):
     user=models.ForeignKey(Account,on_delete=models.CASCADE,null=True)
