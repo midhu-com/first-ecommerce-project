@@ -435,32 +435,9 @@ def add_variation(request, product_id):
 
     # Render the template with the product context and existing variations
     return render(request, 'customadmin/add_variation.html', {'product': product, 'existing_variations': existing_variations})
-def crop_image(request, variation_id):
-    variation = get_object_or_404(Variation, id=variation_id)
-    if request.method == 'POST':
-        crop_data = request.POST.get('crop_data')
-        if crop_data:
-            # Decode base64 crop data
-            format, imgstr = crop_data.split(';base64,')
-            ext = format.split('/')[-1]
-            img_data = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
-            
-            # Open image using PIL and crop
-            original_image = PilImage.open(img_data)
-            cropped_image_io = BytesIO()
-            original_image.save(cropped_image_io, format=ext)
-            
-            # Save cropped image to the instance
-            variation.cropped_image.save(f'cropped_{variation.image.name}', ContentFile(cropped_image_io.getvalue()), save=False)
-            variation.save()
-            return redirect('product_detail', product_id=variation.product.id)
-    return render(request, 'crop_image.html', {'variation': variation})
 
 
-   
 
-
-    
 @never_cache  
 @login_required(login_url='login') 
 def edit_product(request, product_id):
