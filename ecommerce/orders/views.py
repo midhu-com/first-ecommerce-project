@@ -58,10 +58,13 @@ def Payments(request):
         orderproduct.variations.set(product_variation)
         orderproduct.save()
 
-        # reduce the quantity from stock when place an order
-        product=Product.objects.get(id=item.product_id)
-        product.stock -=item.quantity
-        product.save()
+        # Set variations for the order product
+        orderproduct.variations.set(item.variations.all())
+
+        # Reduce the quantity from stock for each variation
+        for variation in item.variations.all():
+            variation.stock -= item.quantity
+            variation.save()
 
     #clear the cart items
     Cartitem.objects.filter(user=request.user).delete()
@@ -275,11 +278,13 @@ def Cash_on_delivery(request, order_number):
         )
         orderproduct.save()
 
-    # Update product stock after successful order
-    for cart_item in cart_items:
-        product = cart_item.product
-        product.stock -= cart_item.quantity
-        product.save()
+    # Set variations for the order product
+    orderproduct.variations.set(item.variations.all())
+
+    # Reduce the quantity from stock for each variation
+    for variation in item.variations.all():
+        variation.stock -= item.quantity
+        variation.save()
 
     # Delete all the current user's cart items
     Cartitem.objects.filter(user=request.user).delete()
@@ -382,11 +387,14 @@ def add_to_wallet(request, order_number):
         # Delete all the current user's cart items
         Cartitem.objects.filter(user=request.user).delete()
 
-        # Update product stock after successful order
-        for cart_item in cart_items:
-            product = cart_item.product 
-            product.stock -= cart_item.quantity
-            product.save()
+        # Set variations for the order product
+        orderproduct.variations.set(item.variations.all())
+
+        # Reduce the quantity from stock for each variation
+        for variation in item.variations.all():
+            variation.stock -= item.quantity
+            variation.save()
+
 
         # Redirect to order confirmation page with order details
         messages.success(request, "Order placed successfully. Amount deducted from your wallet")
