@@ -7,6 +7,10 @@ from store.models import Variation
 from django.contrib.auth.decorators import login_required
 from accounts.models import Address
 from django.contrib import messages
+from django.http import JsonResponse
+from orders.models import Coupon
+import json
+from django.utils import timezone
 
 
 # Create your views here.
@@ -323,5 +327,28 @@ def product_detaill(request, product_slug):
         
     }
     return render(request, 'store/product_detail.html',context)
+def apply_coupon(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        coupon_code = data.get('coupon_code')
 
+        try:
+            coupon = Coupon.objects.get(code=coupon_code, active=True)
+            # Apply the coupon logic here, such as calculating discounts, etc.
+            # Example:
+            # discount_amount = calculate_discount(coupon, ...)
+            return JsonResponse({'message': 'Coupon applied successfully', 'discount_amount': coupon.discount})
+        except Coupon.DoesNotExist:
+            return JsonResponse({'message': 'Invalid coupon code. Please check and try again.'}, status=400)
+        except Exception as e:
+            return JsonResponse({'message': 'Failed to apply coupon. Please try again.'}, status=400)
+
+    return JsonResponse({'message': 'Invalid request method'}, status=405)
+
+
+def get_coupons(request):
+    current_date = timezone.now()
+    coupons = Coupon.objects.filter(valid_from__lte=current_date, valid_to__gte=current_date, active=True)
+    coupons_list = [{'code': coupon.code, 'discount': coupon.discount} for coupon in coupons]
+    return JsonResponse({'coupons': coupons_list})
 
