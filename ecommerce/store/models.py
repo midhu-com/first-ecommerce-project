@@ -6,7 +6,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from datetime import date
 from django.db.models import Avg,Count
 from django.utils.text import slugify
-rom PIL import Image as PilImage
+from PIL import Image as PilImage
 from image_cropping import ImageRatioField
 
 # Create your models here.
