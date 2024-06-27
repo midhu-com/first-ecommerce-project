@@ -86,7 +86,7 @@ class Product(models.Model):
 class Image(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='product_images')
     image = models.ImageField(upload_to='product_images/')
-    cropped_image = ImageRatioField('image', '500x500')
+    
 
 
 class VariationManager(models.Manager):
@@ -106,7 +106,6 @@ class Variation(models.Model):
     variation_value=models.CharField(max_length=100)
     stock = models.IntegerField(validators=[MinValueValidator(0)],default=0)
     image = models.ImageField(upload_to='variation_images/',default='default_variation_image.jpg')
-    cropped_image = models.ImageField(upload_to='variation_images/cropped/', blank=True, null=True)
     is_active=models.BooleanField(default=True)
     created_date=models.DateTimeField(auto_now=True)
 
