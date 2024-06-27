@@ -1,37 +1,140 @@
 {% extends 'customadmin/customhome.html' %}
-{% block title %}Add Variation{% endblock %}
-
+{% load static %}
+<head>
+  <title>Add Variation</title>
+  <link rel="stylesheet" type="text/css" href="{% static 'css/bootstrap.min.css' %}">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
 {% block content %}
-{% include 'alert.html' %}
-<div class="container mt-4">
-    <h2>Add Variation for {{ product.product_name }}</h2>
-    <form method="post">
-        {% csrf_token %}
-        {{ formset.management_form }}
-       <table class="table">
-      <thead>
-        <tr>
-          <th>Variation Category</th>
-          <th>Variation Value</th>
-          <th>Is Active</th>
-          <th>Delete</th>
-          <th>ID</th> 
-        </tr>
-      </thead>
-      <tbody>
-        {% for form in formset %}
-          <tr>
-            <td>{{ form.variation_category }}</td>
-            <td>{{ form.variation_value }}</td>
-            <td>{{ form.is_active }}</td>
-            <td>{{ form.DELETE }}</td>
-            <td>{{ form.id }}</td> 
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  {% include 'alert.html' %}
+  <h2>Add Variations for {{ product.product_name }}</h2>
+  
+  <!-- Existing Variations -->
+  <h4 class="mt-4">Existing Variations</h4>
+  <ul class="list-group mb-4">
+    {% for variation in existing_variations %}
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        <div>
+          <strong>{{ variation.variation_category }}</strong>: {{ variation.variation_value }} - Stock: {{ variation.stock }}
+          <span class="badge badge-{{ variation.is_active|yesno:'success,secondary' }} ml-2">{{ variation.is_active|yesno:'Active,Inactive' }}</span>
+        </div>
+        <div>
+          <form method="post" style="display:inline;">
+            {% csrf_token %}
+            <input type="hidden" name="toggle_active" value="{{ variation.id }}">
+            <button type="submit" class="btn btn-sm btn-warning">Toggle Active</button>
+          </form>
+          <button type="button" class="btn btn-sm btn-primary" onclick="showEditForm('{{ variation.id }}', '{{ variation.variation_category }}', '{{ variation.variation_value }}', '{{ variation.stock }}')">Edit</button>
+          <form method="post" style="display:inline;">
+            {% csrf_token %}
+            <input type="hidden" name="delete_variation" value="{{ variation.id }}">
+            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+          </form>
+        </div>
+      </li>
+    {% endfor %}
+  </ul>
+  
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
     
-    <button type="submit" class="btn btn-primary">Save Variations</button>
+    <h4 class="mt-4">Add New Variants</h4>
+    <div id="variants">
+        <div class="variant form-row align-items-center mb-3">
+            <div class="col">
+                <input type="text" name="variation_category-0" class="form-control" placeholder="Category (color/size)">
+            </div>
+            <div class="col">
+                <input type="text" name="variation_value-0" class="form-control" placeholder="Value">
+            </div>
+            <div class="col">
+                <input type="number" name="stock-0" class="form-control" placeholder="Stock">
+            </div>
+            <div class="col">
+                <input type="file" name="image-0" class="form-control-file">
+            </div>
+        </div>
+    </div>
+    <div class="form-group">
+        <button type="button" class="btn btn-secondary" onclick="addVariant()">Add Variant</button>
+    </div>
+    <div class="form-group">
+        <button type="submit" class="btn btn-primary">Save Variations</button>
+    </div>
   </form>
-</div>
+
+  <!-- Edit Variation Modal -->
+  <div id="editVariationModal" class="modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="modal-header">
+            <h5 class="modal-title">Edit Variation</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" name="edit_variation" value="true">
+            <input type="hidden" name="variation_id" id="edit_variation_id">
+            <div class="form-group">
+              <label for="edit_variation_category">Category</label>
+              <input type="text" name="variation_category" id="edit_variation_category" class="form-control">
+            </div>
+            <div class="form-group">
+              <label for="edit_variation_value">Value</label>
+              <input type="text" name="variation_value" id="edit_variation_value" class="form-control">
+            </div>
+            <div class="form-group">
+              <label for="edit_stock">Stock</label>
+              <input type="number" name="stock" id="edit_stock" class="form-control">
+            </div>
+            <div class="form-group">
+              <label for="edit_image">Image</label>
+              <input type="file" name="image" id="edit_image" class="form-control-file">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-primary">Save changes</button>
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let variantCount = 1;
+    function addVariant() {
+        const variantsDiv = document.getElementById('variants');
+        const newVariantDiv = document.createElement('div');
+        newVariantDiv.className = 'variant form-row align-items-center mb-3';
+        newVariantDiv.innerHTML = `
+            <div class="col">
+                <input type="text" name="variation_category-${variantCount}" class="form-control" placeholder="Category (color/size)">
+            </div>
+            <div class="col">
+                <input type="text" name="variation_value-${variantCount}" class="form-control" placeholder="Value">
+            </div>
+            <div class="col">
+                <input type="number" name="stock-${variantCount}" class="form-control" placeholder="Stock">
+            </div>
+            <div class="col">
+                <input type="file" name="image-${variantCount}" class="form-control-file">
+            </div>
+        `;
+        variantsDiv.appendChild(newVariantDiv);
+        variantCount++;
+    }
+
+    function showEditForm(variationId, category, value, stock) {
+      document.getElementById('edit_variation_id').value = variationId;
+      document.getElementById('edit_variation_category').value = category;
+      document.getElementById('edit_variation_value').value = value;
+      document.getElementById('edit_stock').value = stock;
+      $('#editVariationModal').modal('show');
+    }
+  </script>
+  <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
 {% endblock %}
