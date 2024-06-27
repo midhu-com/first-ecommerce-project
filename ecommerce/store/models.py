@@ -25,6 +25,10 @@ class Product(models.Model):
     discount = models.IntegerField(verbose_name="Discount Percentage",default=0,validators=[MinValueValidator(0), MaxValueValidator(100)])
     validators=[MinValueValidator(0), MaxValueValidator(100)]
 
+    @property
+    def total_stock(self):
+        return sum(variation.stock for variation in self.variations.filter(is_active=True))
+
 
 
     def get_url(self):
@@ -82,9 +86,7 @@ class Product(models.Model):
             discount = max(discount, self.category.offer.discount_percentage)
 
         return discount
-    @property
-    def total_stock(self):
-        return sum(variation.stock for variation in self.variations.filter(is_active=True))
+    
 
         
 class Image(models.Model):
