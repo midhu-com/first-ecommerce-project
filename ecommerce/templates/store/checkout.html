@@ -54,11 +54,21 @@
                         <br><br>
                         <div class="mt-5">
                             <div class="form-group mt-3 ">
-                                <a href="{% url 'coupon_list' %}" class="btn btn-info">View Coupon Details</a>
+                                <!-- Button to show available coupons -->
+                                <button type="button" class="btn btn-info" id="showCouponsBtn">Apply Coupon</button>
                                 <br>
                                 <br>
+                                <!-- Container to display available coupons -->
+                                <div id="couponsContainer" style="display: none;">
+                                    <h5>Available Coupons:</h5>
+                                    <ul id="couponsList">
+                                        <!-- Coupons will be dynamically added here -->
+                                    </ul>
+                                </div>
+                                <!-- Input field for entering coupon code -->
                                 <label for="coupon_code">Enter Coupon Code:</label>
                                 <input type="text" class="form-control" id="coupon_code_input" name="coupon_code">
+                                <button type="button" class="btn btn-primary mt-3" id="applyCouponBtn">Apply</button>
                             </div>
     
                         </div>
@@ -121,5 +131,59 @@
     </div> <!-- container .//  -->
 </section>
 <!-- ========================= SECTION CONTENT END// ========================= -->
+<script>
+    // JavaScript to handle showing coupons and applying them
+    document.addEventListener('DOMContentLoaded', function() {
+        const showCouponsBtn = document.getElementById('showCouponsBtn');
+        const couponsContainer = document.getElementById('couponsContainer');
+        const couponsList = document.getElementById('couponsList');
+        const couponCodeInput = document.getElementById('coupon_code_input');
+        const applyCouponBtn = document.getElementById('applyCouponBtn');
 
+        // Event listener for Show Coupons button
+        showCouponsBtn.addEventListener('click', function() {
+            // Example: Fetch coupons using AJAX and update couponsList
+            fetch('{% url "get_coupons" %}')
+                .then(response => response.json())
+                .then(data => {
+                    couponsList.innerHTML = '';
+                    data.coupons.forEach(coupon => {
+                        const li = document.createElement('li');
+                        li.textContent = `${coupon.code} - Discount: ${coupon.discount}%`;
+                        li.dataset.couponCode = coupon.code; // Store coupon code in dataset
+                        couponsList.appendChild(li);
+                    });
+                    couponsContainer.style.display = 'block'; // Show coupons container
+                })
+                .catch(error => console.error('Error fetching coupons:', error));
+        });
+
+        // Event listener for Apply Coupon button
+        applyCouponBtn.addEventListener('click', function() {
+            const selectedCouponCode = couponCodeInput.value.trim();
+            if (selectedCouponCode) {
+                // Example: Send selected coupon code to server using AJAX
+                fetch('{% url "apply_coupon" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}',
+                    },
+                    body: JSON.stringify({ coupon_code: selectedCouponCode }),
+                })
+                .then(response => {
+                    if (response.ok) {
+                        alert('Coupon applied successfully!');
+                        // Optionally, update the UI to reflect the applied coupon
+                    } else {
+                        alert('Failed to apply coupon. Please try again.');
+                    }
+                })
+                .catch(error => console.error('Error applying coupon:', error));
+            } else {
+                alert('Please enter a coupon code.');
+            }
+        });
+    });
+</script>
 {% endblock %}
