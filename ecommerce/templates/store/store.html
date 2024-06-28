@@ -121,7 +121,8 @@
                     <div>
                     
                         {% if product.total_stock > 0 %}
-                            
+                            <h6>Only {{total_variation_stock}} are left
+                        {% else %}
                             <h6 class="text-danger">Out Of Stock</h6>
                         {% endif %}
                     </div>
